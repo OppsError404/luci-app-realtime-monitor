@@ -1,0 +1,3254 @@
+<%+header%>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<div id="custom_status_container">
+  <!-- Loading Overlay -->
+  <div id="dashboard_loading_overlay" aria-live="polite" aria-label="Loading dashboard data">
+    <div class="dlo_inner">
+      <svg class="dlo_spinner" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+        <circle class="dlo_track" cx="22" cy="22" r="18" fill="none" stroke-width="3"/>
+        <circle class="dlo_arc"   cx="22" cy="22" r="18" fill="none" stroke-width="3"
+          stroke-dasharray="90 200" stroke-dashoffset="0" stroke-linecap="round"/>
+      </svg>
+      <span class="dlo_label">Loading dashboard&hellip;</span>
+    </div>
+  </div>
+
+  <!-- Control Card -->
+  <div id="custom_control_card" class="status_card control_card" role="region" aria-label="Realtime controls">
+    <h2 class="cc_title">Dash<span class="cc_title_accent">board</span></h2>
+    <div class="cc_right">
+      <div class="tile-clock">
+        <div class="tile-date"><i class="fas fa-calendar-day"></i><span id="tile_date">-- --</span></div>
+        <div class="tile-time-row">
+          <button id="force_refresh_btn" class="btn icon only" title="Force refresh" aria-label="Force refresh">
+            <i class="fas fa-redo" aria-hidden="true"></i>
+          </button>
+          <div class="tile-time"><span id="current_time">--:--:--</span><span class="tile-ampm" id="tile_ampm">--</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Network Card -->
+  <div class="status_card network">
+    <h3 class="header_center"><i class="fas fa-globe"></i> Network</h3>
+    <div class="info_row">
+      <div class="info_label">Internet Status</div>
+      <div class="info_value"><span id="net_status" class="badge">N/A</span></div>
+    </div>
+    <div class="info_row">
+      <div class="info_label">Public IPv4</div>
+      <div class="info_value"><span id="net_public_ip">N/A</span></div>
+    </div>
+    <div id="ipv6_block">
+      <div class="info_row">
+        <div class="info_label">Public IPv6</div>
+        <div class="info_value"><span id="net_public_ipv6">N/A</span></div>
+      </div>
+    </div>
+    <div class="info_row">
+      <div class="info_label">ISP</div>
+      <div class="info_value"><span id="net_isp">N/A</span></div>
+    </div>
+    <div class="info_row" id="wan_uptime_row">
+      <div class="info_label" id="net_wan_uptime_label">WAN Uptime</div>
+      <div class="info_value"><span id="net_wan_uptime">N/A</span></div>
+    </div>
+    <div id="wan_down_msg"></div>
+
+    <div class="faded_sep" aria-hidden="true"></div>
+
+    <!-- WAN Traffic -->
+    <div class="wan_block" role="group" aria-label="WAN Traffic">
+      <div class="wan_title_row">
+        <h4 class="wan_traffic_title" >WAN Traffic</h4>
+        <div class="wan-unit-dropdown" id="wan_unit_dropdown">
+          <button class="wan-unit-trigger" id="wan_unit_trigger" aria-haspopup="listbox" aria-expanded="false">
+            <span id="wan_unit_label">MB/s</span>
+            <svg class="wan-unit-chevron" viewBox="0 0 10 6" width="9" height="9" fill="none">
+              <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="wan-unit-menu" id="wan_unit_menu" role="listbox" aria-label="WAN unit">
+            <div class="wan-unit-option active" data-unit="MBs" role="option" aria-selected="true">MB/s <span class="wan-unit-hint">binary</span></div>
+            <div class="wan-unit-option" data-unit="Mbps" role="option" aria-selected="false">Mbps <span class="wan-unit-hint">decimal</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="wan_rates_row">
+        <div class="wan_rate_box wan_rate_rx">
+          <span id="wan_rx_value" class="wan_rate_val">0 B/s</span>
+          <span class="wan_rate_meta"><i class="fas fa-arrow-down"></i> Down-Rate</span>
+        </div>
+        <div class="wan_rate_box wan_rate_tx">
+          <span id="wan_tx_value" class="wan_rate_val">0 B/s</span>
+          <span class="wan_rate_meta"><i class="fas fa-arrow-up"></i> Up-Rate</span>
+        </div>
+      </div>
+      <div class="wan_merged_chart">
+        <canvas id="netChart" height="140"></canvas>
+      </div>
+      <div class="sub_stat_row wan_sub_stat">
+        <span class="sub_stat_chunk">Rx — Avg: <span id="wan_rx_avg">--</span> &nbsp; Max: <span id="wan_rx_max">--</span></span>
+        <span class="sub_stat_sep" aria-hidden="true">|</span>
+        <span class="sub_stat_chunk">Tx — Avg: <span id="wan_tx_avg">--</span> &nbsp; Max: <span id="wan_tx_max">--</span></span>
+      </div>
+    </div>
+    <div class="wan_client_btn_wrap">
+      <a href="/cgi-bin/luci/admin/realtime/client" class="wan_client_btn" title="View per-client usage rates">
+        <i class="fas fa-users"></i>
+        <span>View Per Client Traffic</span>
+        <i class="fas fa-external-link-alt wan_client_btn_ext"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- CPU & Memory Card -->
+  <div class="status_card cpu_graphs">
+    <div class="up5_row">
+      <a href="/cgi-bin/luci/admin/status/overview" class="up5_widget uptime_widget" title="Open Status Overview">
+        <div class="up5_icon_wrap" aria-hidden="true"><i class="fas fa-server"></i></div>
+        <div class="up5_stack">
+          <span class="up5_lbl">System Uptime</span>
+          <span class="up5_val" id="system_uptime_control">N/A</span>
+        </div>
+      </a>
+      <a id="adb_widget_link" href="/cgi-bin/luci/admin/services/adblock" class="up5_widget adb_widget" title="Open Adblock settings">
+        <div class="up5_icon_wrap adb_icon_wrap" aria-hidden="true"><i class="fas fa-shield-alt"></i></div>
+        <div class="up5_stack">
+          <span class="up5_lbl">Adblock</span>
+          <span class="up5_val adb_status_val" id="adb_status_val" style="display:none"></span>
+          <span class="adb_domains" id="adb_domains_val"></span>
+        </div>
+      </a>
+    </div>
+    <h3 class="header_left"><i class="fas fa-chart-area"></i> CPU Usage</h3>
+    <div class="cpu_stat_row">
+      <span>Load: <strong><span id="cpuPercentText">--.-%</span></strong></span>
+      <span id="cpuTempBadge" class="temp_badge temp_badge_ok">-- °C</span>
+    </div>
+    <div class="cpu_bar_container"><div id="cpuBarFill" class="cpu_bar"></div></div>
+    <div class="sub_stat_row">Avg: <span id="cpuAvgText">--.-%</span> &nbsp; Max: <span id="cpuMaxText">--.-%</span></div>
+    <div class="cpu_merged_chart">
+      <canvas id="cpuLineChart" height="100"></canvas>
+    </div>
+    <div class="faded_sep faded_sep--flush" aria-hidden="true"></div>
+    <h5 class="header_left mem_header"><i class="fas fa-memory"></i> Memory</h5>
+    <div class="mem_arc_row">
+      <div class="mem_arc_wrap">
+        <svg width="86" height="50" viewBox="0 0 86 50">
+          <path class="mem_arc_track" d="M 7 46 A 36 36 0 0 1 79 46" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6" stroke-linecap="round"/>
+          <path id="mem_arc_fill" d="M 7 46 A 36 36 0 0 1 79 46" fill="none" stroke="#26c6da"
+            stroke-width="6" stroke-linecap="round"
+            stroke-dasharray="113 113" stroke-dashoffset="113"
+            style="transition:stroke-dashoffset 0.6s cubic-bezier(0.2,0.8,0.2,1),stroke 0.4s ease;"/>
+        </svg>
+        <div class="mem_arc_pct" id="mem_arc_pct">--%</div>
+      </div>
+      <div class="mem_arc_vals">
+        <div class="mem_arc_stat mem_arc_stat--first">Used: <span id="custom_mem">N/A</span></div>
+        <div class="mem_arc_stat">Free: <span id="mem_free_text">N/A</span></div>
+      </div>
+      <div class="mem_spark_panel">
+        <div class="mem_spark_label">History</div>
+        <div class="mem_spark_outer">
+          <canvas id="mem_sparkline"></canvas>
+          <div id="mem_spark_tooltip" class="mem_spark_tooltip"></div>
+        </div>
+      </div>
+    </div>
+    <div class="mem_bar_container"><div id="mem_bar" class="mem_bar"></div></div>
+  </div>
+
+  <!-- Clients Card -->
+  <div class="status_card clients">
+    <h3 class="header_center"><i class="fas fa-users"></i> Clients</h3>
+
+    <!-- Wireless tile -->
+    <div class="cl_tile">
+      <div class="cl_tile_head">
+        <div class="cl_tile_head_left">
+          <div class="cl_tile_icon cl_icon_wifi"><i class="fas fa-wifi"></i></div>
+          Wireless
+        </div>
+        <span class="cl_badge cl_badge_wifi" id="custom_wifi_total">0</span>
+      </div>
+      <div class="cl_tile_body" id="custom_wifi_ap_list"></div>
+      <div class="cl_temp_foot" id="wifi_temp_foot">
+        <i class="fas fa-microchip"></i>
+        <span>Wireless controller temp</span>
+        <span class="cl_temp_val" id="custom_wifi_temp">-- °C</span>
+        <span class="cl_tdot" id="wifi_temp_dot"></span>
+      </div>
+    </div>
+
+    <!-- LAN tile -->
+    <div class="cl_tile cl_tile--spaced">
+      <div class="cl_tile_head">
+        <div class="cl_tile_head_left">
+          <div class="cl_tile_icon cl_icon_lan"><i class="fas fa-network-wired"></i></div>
+          LAN
+        </div>
+        <span class="cl_badge cl_badge_lan" id="custom_lan_total">0</span>
+      </div>
+      <div class="cl_tile_body" id="custom_lan_ports"></div>
+      <div class="cl_port_strip" id="custom_lan_port_strip">
+        <span class="cl_port_strip_label">Ports</span>
+        <div class="cl_port_dots" id="custom_lan_port_dots"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Usage Card -->
+  <div class="status_card usage">
+    <div class="usage_title_row">
+      <h3 class="header_center"><i class="fas fa-chart-line"></i> Usage</h3>
+      <div class="wan-unit-dropdown" id="vn_iface_dropdown" style="display:none">
+        <button class="wan-unit-trigger" id="vn_iface_trigger" aria-haspopup="listbox" aria-expanded="false">
+          <span id="vn_iface_label">WAN</span>
+          <svg class="wan-unit-chevron" viewBox="0 0 10 6" width="9" height="9" fill="none">
+            <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="wan-unit-menu" id="vn_iface_menu" role="listbox" aria-label="Interface">
+          <!-- populated dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- vnStat warning (shown when not installed or not working) -->
+    <div id="vnstat_warning" class="vnstat_warn" style="display:none"></div>
+
+    <!-- Normal vnStat content (hidden when warning is shown) -->
+    <div id="vnstat_content">
+    <div class="usage_total_row">
+      <div class="usage_total_block">
+        <div class="usage_total_label">Today</div>
+        <div class="usage_total_val"><span id="vn_daily_total">N/A</span></div>
+      </div>
+      <div class="usage_total_divider"></div>
+      <div class="usage_total_block">
+        <div class="usage_total_label">Monthly</div>
+        <div class="usage_total_val"><span id="vn_monthly_total">N/A</span></div>
+      </div>
+    </div>
+
+    <div class="faded_sep" aria-hidden="true"></div>
+
+    <!-- Today tile -->
+    <div class="usage_period_tile">
+      <div class="usage_pt_head">
+        <div class="usage_pt_icon usage_icon_today"><i class="fas fa-calendar-day"></i></div>
+        <span id="vn_daily_header">Today</span>
+      </div>
+      <div class="usage_pt_body">
+        <div class="usage_pt_cell">
+          <span class="usage_ck"><i class="fas fa-arrow-down rx_col"></i> Download</span>
+          <span class="usage_cv rx_col" id="vn_daily_rx">N/A</span>
+        </div>
+        <div class="usage_pt_cell">
+          <span class="usage_ck"><i class="fas fa-arrow-up tx_col"></i> Upload</span>
+          <span class="usage_cv tx_col" id="vn_daily_tx">N/A</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly tile -->
+    <div class="usage_period_tile">
+      <div class="usage_pt_head">
+        <div class="usage_pt_icon usage_icon_monthly"><i class="fas fa-calendar-alt"></i></div>
+        <span id="vn_monthly_header">Monthly</span>
+      </div>
+      <div class="usage_pt_body">
+        <div class="usage_pt_cell">
+          <span class="usage_ck"><i class="fas fa-arrow-down rx_col"></i> Download</span>
+          <span class="usage_cv rx_col" id="vn_monthly_rx">N/A</span>
+        </div>
+        <div class="usage_pt_cell">
+          <span class="usage_ck"><i class="fas fa-arrow-up tx_col"></i> Upload</span>
+          <span class="usage_cv tx_col" id="vn_monthly_tx">N/A</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Graphs link -->
+    <div class="usage_graphs_btn_wrap">
+      <a href="/cgi-bin/luci/admin/status/vnstat2/graphs" class="usage_graphs_btn" title="Open vnStat bandwidth graphs">
+        <i class="fas fa-chart-bar"></i>
+        <span>View Detailed Usage Graphs</span>
+        <i class="fas fa-external-link-alt usage_graphs_ext"></i>
+      </a>
+    </div>
+  </div>
+</div>
+
+<div id="error_banner" style="color:red;text-align:center;display:none;margin:8px 0;">
+  Realtime data unavailable
+</div>
+
+<style>
+/* ── CSS variables ── */
+:root {
+  --pale-white:        rgba(255,255,255,0.80);
+  --pale-white-strong: rgba(255,255,255,0.90);
+  --card-border:       rgba(255,255,255,0.04);
+  --rx-tint:           rgba(78,168,255,0.90);
+  --tx-tint:           rgba(76,208,138,0.90);
+  --btn-border:        rgba(255,255,255,0.06);
+  --btn-hover:         rgba(255,255,255,0.06);
+  --text-color:        rgba(255,255,255,0.85);
+  --shimmer-base:      rgba(255,255,255,0.04);
+  --shimmer-shine:     rgba(255,255,255,0.10);
+}
+.theme-light {
+  --pale-white:        rgba(16,18,20,0.85);
+  --pale-white-strong: rgba(8,10,12,0.90);
+  --card-border:       rgba(0,0,0,0.08);
+  --btn-border:        rgba(16,18,20,0.06);
+  --btn-hover:         rgba(16,18,20,0.04);
+  --rx-tint:           rgba(24,96,170,0.90);
+  --tx-tint:           rgba(24,128,86,0.90);
+  --text-color:        rgba(16,18,20,0.85);
+  --shimmer-base:      rgba(0,0,0,0.04);
+  --shimmer-shine:     rgba(0,0,0,0.10);
+}
+
+/* ── Skeleton shimmer ── */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+.skeleton {
+  background: linear-gradient(90deg,
+    var(--shimmer-base) 25%,
+    var(--shimmer-shine) 50%,
+    var(--shimmer-base) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease infinite;
+  border-radius: 4px;
+  display: inline-block;
+  min-width: 60px;
+  min-height: 1em;
+  vertical-align: middle;
+}
+/* Stale indicator: values from localStorage shown with slight dimness until fresh fetch */
+.stale-value {
+  opacity: 0.65;
+  font-style: italic;
+  transition: opacity 0.4s ease, font-style 0.3s ease;
+}
+.stale-value.freshened {
+  opacity: 1;
+  font-style: normal;
+}
+
+/* ── Layout ── */
+#custom_status_container {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 10px;
+  max-width: 1600px;
+  margin: 0 auto;
+  position: relative;
+}
+/* ── Initial loading overlay ── */
+#dashboard_loading_overlay {
+  position: absolute; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px;
+  background: rgba(8,10,16,0.72);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  opacity: 1; transition: opacity 0.4s ease;
+  pointer-events: all;
+}
+#dashboard_loading_overlay.dlo_hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.theme-light #dashboard_loading_overlay { background: rgba(240,242,246,0.75); }
+.dlo_inner { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.dlo_spinner { width: 44px; height: 44px; animation: dlo_rotate 1.1s linear infinite; }
+.dlo_track { stroke: rgba(255,255,255,0.08); }
+.theme-light .dlo_track { stroke: rgba(0,0,0,0.10); }
+.dlo_arc { stroke: #4ea8ff; animation: dlo_dash 1.4s ease-in-out infinite; }
+@keyframes dlo_rotate { to { transform: rotate(360deg); } }
+@keyframes dlo_dash {
+  0%   { stroke-dashoffset: 0; }
+  50%  { stroke-dashoffset: -100; }
+  100% { stroke-dashoffset: -240; }
+}
+.dlo_label { font-size: 0.80em; font-weight: 600; letter-spacing: 0.3px; color: rgba(255,255,255,0.45); }
+.theme-light .dlo_label { color: rgba(16,18,20,0.45); }
+.status_card {
+  padding: 9px;
+  border-radius: 6px;
+  font-size: 0.95em;
+  box-sizing: border-box;
+  border: 0.5px solid var(--card-border);
+  box-shadow: 0 2px 5px rgba(2,6,23,0.35), inset 0 1px 0 rgba(255,255,255,0.02);
+  transition: transform 0.25s ease, box-shadow 0.3s ease;
+  width: calc(50% - 6px);
+  min-width: 280px;
+}
+.status_card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 10px rgba(2,0,23,0.55);
+}
+.theme-light .status_card {
+  box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+}
+.theme-light .status_card:hover {
+  outline: 0.5px solid rgba(12,60,70,1);
+  box-shadow: 0 2px 10px rgba(12,16,20,0.8);
+}
+
+/* ── Control card ── */
+.status_card.control_card {
+  width: 100%;
+  padding: 10px 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  box-shadow: none;
+  border-radius: 0;
+  cursor: default;
+}
+.status_card.control_card:hover {
+  transform: none;
+  box-shadow: none;
+  outline: none;
+}
+.theme-light .status_card.control_card {
+  border-bottom-color: rgba(0,0,0,0.08);
+}
+
+/* Big gradient header title */
+.cc_title {
+  font-size: 2em;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  margin: 10px 0 0;
+  color: rgba(255,255,255,0.90);
+}
+.theme-light .cc_title { color: rgba(16,18,20,0.90); }
+.cc_title_accent {
+  background: linear-gradient(90deg, #4ea8ff 100%, #43e8a0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Right side: tile clock */
+.cc_right {
+  display: flex;
+  align-items: flex-end;
+}
+.tile-clock {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-end;
+}
+.tile-date {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 7px;
+  border-radius: 5px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.05);
+  font-size: 0.60em;
+  font-weight: 600;
+  color: rgba(255,255,255,0.32);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  max-height: 16px;
+}
+.theme-light .tile-date {
+  background: rgba(0,0,0,0.04);
+  border-color: rgba(0,0,0,0.08);
+  color: rgba(16,18,20,0.40);
+}
+.tile-date i { opacity: 0.60; font-size: 0.90em; }
+/* Bottom row: refresh button + time pill side-by-side */
+.tile-time-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: -8px;
+}
+.tile-time {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: rgba(78,168,255,0.07);
+  border: 1px solid rgba(78,168,255,0.18);
+  font-size: 0.95em;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255,255,255,0.82);
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.theme-light .tile-time {
+  background: rgba(24,96,170,0.06);
+  border-color: rgba(24,96,170,0.18);
+  color: rgba(16,18,20,0.82);
+}
+.tile-ampm {
+  font-size: 0.60em;
+  font-weight: 600;
+  color: rgba(78,168,255,0.65);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: -2px;
+}
+.theme-light .tile-ampm { color: rgba(24,96,170,0.65); }
+
+/* Refresh button */
+.status_card.control_card .btn.icon.only {
+  width: 30px;
+  height: 24px;
+  padding: 0;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005));
+  border: 1px solid rgba(73,152,230,0.2);
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(2,6,23,0.45);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  backdrop-filter: blur(4px);
+}
+.theme-light .status_card.control_card .btn.icon.only {
+  background: linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.005));
+  box-shadow: 0 6px 14px rgba(10,12,14,0.06);
+}
+.status_card.control_card .btn.icon.only:hover {
+  transform: translateY(-1px);
+  background: var(--btn-hover);
+}
+.status_card.control_card .btn.icon.only i { font-size: 10px; align-items: center;}
+
+
+
+/* ── Uptime widget ── */
+.up5_widget {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.06);
+  width: fit-content;
+  margin-bottom: 8px;
+  justify-content: center;
+
+}
+.theme-light .up5_widget {
+  background: rgba(0,0,0,0.03);
+  border-color: rgba(0,0,0,0.08);
+}
+.up5_icon_wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(126,87,194,0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9c73d4;
+  font-size: 0.90em;
+  flex-shrink: 0;
+  
+}
+.theme-light .up5_icon_wrap { background: rgba(126,87,194,0.10); }
+.up5_stack { display: flex; flex-direction: column; gap: 0; }
+.up5_lbl {
+  font-size: 0.62em;
+  color: rgba(255,255,255,0.32);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+.theme-light .up5_lbl { color: rgba(0,0,0,0.35); }
+.up5_val {
+  font-size: 0.93em;
+  font-weight: 700;
+  color: rgba(255,255,255,0.88);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.theme-light .up5_val { color: rgba(16,18,20,0.86); }
+
+/* ── Uptime + Adblock side-by-side row ── */
+.up5_row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+#system_uptime_control { font-weight: 400; }
+
+.up5_row .up5_widget { margin-bottom: 0; flex: 1; min-width: 0; }
+/* Make uptime and adblock widgets clickable links */
+a.uptime_widget,
+a.adb_widget {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+a.uptime_widget:hover,
+a.adb_widget:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.14);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+}
+.theme-light a.uptime_widget:hover,
+.theme-light a.adb_widget:hover {
+  border-color: rgba(0,0,0,0.14);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+/* ── Adblock widget ── */
+.adb_icon_wrap {
+  background: rgba(229,57,53,0.16) !important;
+  color: #ef5350 !important;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.adb_icon_wrap.adb_enabled {
+  background: rgba(40,116,65,0.18) !important;
+  color: #66bb6a !important;
+}
+.theme-light .adb_icon_wrap         { background: rgba(229,57,53,0.12) !important; }
+.theme-light .adb_icon_wrap.adb_enabled { background: rgba(40,116,65,0.12) !important; }
+.adb_status_val { font-size: 0.78em !important; }
+.adb_domains {
+  font-size: 0.65em;
+  font-weight: 500;
+  color: rgba(255,255,255,0.38);
+  letter-spacing: 0.2px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.theme-light .adb_domains { color: rgba(0,0,0,0.38); }
+
+/* ── Network info rows ── */
+.info_row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  margin: 6px 0;
+}
+.info_label { min-width: 120px; color: var(--text-color); }
+.info_value  { text-align: right; }
+
+/* ── Headers ── */
+.header_left   { display: flex; justify-content: flex-start; color: var(--pale-white-strong); }
+.header_center { display: flex; justify-content: center;     color: var(--pale-white-strong); }
+
+.status_card h3 {
+  margin: 0 0 4px;
+  font-size: 1.1em;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.status_card h5 {
+  margin: 0 0 6px;
+  font-size: 1.01em;
+  font-weight: 650;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Per-card accent colors + spacing tweaks */
+.status_card.network    h3 { color: #2196f3; margin-top: -6px; }
+.status_card.cpu_graphs h3 { color: #7e57c2; margin-bottom: -10px; }
+.status_card.cpu_graphs h5.mem_header { color: #26c6da; margin-bottom: -16px; }
+.status_card.clients    h3 { color: #43a047; margin-top: -6px; margin-bottom: 6px; }
+.status_card.clients       { padding-top: 6px; }
+.status_card.usage      h3 { color: #ba8f45; margin-top: -8px; }
+
+/* Usage card title row (mirrors wan_title_row) */
+.usage_title_row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 2px;
+}
+.usage_title_row h3 { margin-bottom: 0; }
+
+/* ── Faded separator ── */
+.faded_sep {
+  height: 1px;
+  margin: 8px 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  border-radius: 1px;
+}
+.faded_sep--flush { margin-bottom: 0; }
+.theme-light .faded_sep {
+  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.04), transparent);
+}
+
+/* ── Progress bars ── */
+.cpu_bar_container,
+.mem_bar_container {
+  box-sizing: border-box;
+  width: 100%;
+  height: 5.5px;
+  border-radius: 4px;
+  margin: 3px 0;
+  background: rgba(255,255,255,0.06);
+  overflow: hidden;
+}
+.theme-light .cpu_bar_container,
+.theme-light .mem_bar_container {
+  background: rgba(0,0,0,0.04);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.02);
+}
+.cpu_bar,
+.mem_bar {
+  display: block;
+  height: 100%;
+  width: 0%;
+  transition: width 0.5s cubic-bezier(0.2,0.8,0.2,1), background-color 0.5s ease;
+  will-change: width, background-color;
+}
+/* Hidden by default — JS shows if needed */
+.mem_bar_container { display: none; }
+
+/* ── Memory: arc | values | mini sparkline ── */
+.mem_arc_row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+.mem_arc_wrap {
+  position: relative;
+  width: 86px;
+  height: 50px;
+  flex-shrink: 0;
+}
+.mem_arc_pct {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.80em;
+  font-weight: 700;
+  color: rgba(255,255,255,0.88);
+  white-space: nowrap;
+  pointer-events: none;
+  line-height: 1;
+}
+.theme-light .mem_arc_pct  { color: rgba(16,18,20,0.88); }
+.theme-light .mem_arc_track { stroke: rgba(0,0,0,0.10); }
+.mem_arc_vals {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mem_arc_stat {
+  font-size: 0.70em;
+  color: var(--pale-white);
+  white-space: nowrap;
+  opacity: .95;
+  margin-bottom: -6px;
+}
+.mem_arc_stat--first { margin-top: 15px; }
+.mem_spark_panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mem_spark_label {
+  font-size: 0.62em;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+  margin: -3px 0 -6px;
+}
+.theme-light .mem_spark_label { color: rgba(0,0,0,0.28); }
+.mem_spark_outer {
+  position: relative;
+  line-height: 0;
+  height: 50px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.theme-light .mem_spark_outer { border-color: rgba(0,0,0,0.10); }
+#mem_sparkline { display: block; width: 100%; height: 100%; cursor: crosshair; }
+.mem_spark_tooltip {
+  position: absolute;
+  top: 5px;
+  font-size: 0.65em;
+  font-weight: 600;
+  color: rgba(255,255,255,0.90);
+  pointer-events: none;
+  white-space: nowrap;
+  display: none;
+  transform: translateX(-50%);
+  z-index: 10;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.60);
+}
+.theme-light .mem_spark_tooltip {
+  color: rgba(16,18,20,0.88);
+  text-shadow: 0 1px 3px rgba(255,255,255,0.70);
+}
+
+/* ── CPU stat & sub-stat rows ── */
+.cpu_stat_row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.92em;
+  color: var(--text-color);
+  margin-bottom: 4px;
+}
+.sub_stat_row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 0;
+  font-size: 0.75em;
+  opacity: 0.75;
+  margin-top: 2px;
+  color: var(--text-color);
+}
+.sub_stat_chunk { white-space: nowrap; font-size: .93em; margin-top: 5px; }
+.sub_stat_sep   { opacity: 0.3; margin: 5px 4px 0; white-space: nowrap; }
+
+/* ── Temp badge ── */
+.temp_badge {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 98px;
+  font-size: 0.75em;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: #fff;
+  transition: background-color 0.4s ease;
+  white-space: nowrap;
+}
+.temp_badge_ok   { background: #287441; }
+.temp_badge_warm { background: #b07d10; }
+.temp_badge_hot  { background: #b33329; }
+
+/* Canvas heights */
+#cpuLineChart { display: block; width: 100%; height: 100px; }
+
+/* ── WAN merged chart wrapper ── */
+.wan_merged_chart {
+  display: block;
+  line-height: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 2px;
+  margin-bottom: -12px;
+}
+#netChart {
+  display: block;
+  width: 100%;
+  height: 140px;
+}
+
+/* ── CPU merged chart ── */
+.cpu_merged_chart {
+  display: block;
+  line-height: 0;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.theme-light .cpu_merged_chart { border-color: rgba(0,0,0,0.10); }
+
+/* ── Per-core section: IMPROVED entrance animation ── */
+.cpu-core-section {
+  display: block;
+  line-height: 0;
+  position: relative;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 4px;
+  will-change: transform, opacity;
+  animation: coreSlideIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.theme-light .cpu-core-section { border-color: rgba(0,0,0,0.10); }
+
+@keyframes coreSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.975);
+    border-color: rgba(255,255,255,0.04);
+  }
+  60% {
+    opacity: 1;
+    border-color: rgba(255,255,255,0.18);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    border-color: rgba(255,255,255,0.12);
+  }
+}
+.theme-light .cpu-core-section {
+  animation: coreSlideInLight 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes coreSlideInLight {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.975);
+    border-color: rgba(0,0,0,0.03);
+  }
+  60% {
+    opacity: 1;
+    border-color: rgba(0,0,0,0.16);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    border-color: rgba(0,0,0,0.10);
+  }
+}
+
+.cpu-core-label {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 0;
+  line-height: 1;
+  font-size: 0.62em;
+  font-weight: 600;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.30);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.theme-light .cpu-core-label { color: rgba(0,0,0,0.30); }
+
+/* Positioned wrapper required by Chart.js responsive:true — sets the chart height */
+.cpu-core-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 68px;
+}
+
+/* ── Internet status badge ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 5px;
+  border-radius: 5px;
+  font-size: 0.9em;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1;
+}
+.badge.online {
+  background: rgba(40,116,65,0.18);
+  color: var(--text-color);
+  border: 1px solid rgba(40,116,65,0.38);
+}
+.badge.offline {
+  background: rgba(179,51,41,0.18);
+  color: var(--text-color);
+  border: 1px solid rgba(179,51,41,0.38);
+}
+
+/* Live indicator dot */
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: block;
+  align-self: center;
+}
+.status-dot.dot-online  { background: #0b6124; box-shadow: 0 0 3px rgba(11,97,36,0.7); }
+.status-dot.dot-offline { background: #8b1c14; box-shadow: 0 0 3px rgba(139,28,20,0.7); }
+
+@keyframes dotPulse {
+  0%   { opacity: 1;    transform: scale(1); }
+  25%  { opacity: 0.12; transform: scale(0.7); }
+  65%  { opacity: 1;    transform: scale(1.15); }
+  100% { opacity: 1;    transform: scale(1); }
+}
+.status-dot.pulsing { animation: dotPulse 0.55s cubic-bezier(0.4,0,0.2,1) forwards; }
+
+/* ── Downtime "for X" suffix inside offline badge ── */
+.badge-offline-stack {
+  display: inline;
+}
+.badge-offline-label {
+  font-size: 1em;
+  font-weight: 600;
+}
+.badge-downtime-for {
+  font-size: 0.68em;
+  font-weight: 500;
+  opacity: 0.65;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  vertical-align: baseline;
+  margin-left: 3px;
+}
+
+/* ── ISP name / ASN ── */
+#net_isp .isp_name { display: block; font-size: 0.98em; color: var(--text-color); }
+#net_isp .isp_asn {
+  display: block;
+  font-size: 0.75em;
+  color: var(--pale-white);
+  opacity: 0.65;
+  margin-top: 1px;
+  text-decoration: none;
+}
+#net_isp .isp_asn:hover { opacity: 0.8; text-decoration: underline; cursor: pointer; }
+.theme-light #net_isp .isp_asn { color: var(--text-color); opacity: 0.78; font-size: 0.60rem; }
+
+#net_wan_uptime,
+#net_public_ip,
+#net_public_ipv6 { color: var(--text-color); }
+
+/* Hidden by default — shown by JS */
+#ipv6_block  { display: none; }
+#wan_down_msg { display: none; }
+
+/* ── WAN block ── */
+.wan_block {
+  margin: 2px 0 0;
+  padding: 4px;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(255,255,255,0.004);
+  border: 1px solid var(--btn-border);
+  box-shadow: 0 0 5px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.02);
+  transition: box-shadow 0.12s ease;
+}
+.theme-light .wan_block {
+  background: linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.005));
+  box-shadow: 0 6px 12px rgba(10,12,14,0.06), inset 0 1px 0 rgba(255,255,255,0.02);
+}
+.wan_block:hover {
+  box-shadow: 0 5px 15px rgba(2,6,23,0.45);
+}
+
+/* WAN title row */
+.wan_title_row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-bottom: -5px;
+}
+.wan_traffic_title {
+  display: flex;
+  justify-content: center;
+  font-size: 1em;
+  margin: 0;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--rx-tint) 0%, var(--tx-tint) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-top: -5px;
+}
+
+/* ── WAN rate boxes ── */
+.wan_rates_row {
+  display: flex;
+  justify-content: center;
+  gap: 1px;
+  margin: 2px 0 8px;
+  margin-bottom: 2px;
+  margin-top: -5px;
+}
+.wan_rate_box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 3px 18px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 0;
+  position: relative;
+  transition: background 0.18s ease;
+}
+.wan_rate_box:hover { background: rgba(255,255,255,0.055); }
+.theme-light .wan_rate_box { background: rgba(0,0,0,0.025); }
+.theme-light .wan_rate_box:hover { background: rgba(0,0,0,0.055); }
+.wan_rate_rx {
+  border-radius: 10px 2px 2px 10px;
+  border: 1px solid rgba(78,168,255,0.22);
+}
+.theme-light .wan_rate_rx { border-color: rgba(24,96,170,0.22); }
+.wan_rate_tx {
+  border-radius: 2px 10px 10px 2px;
+  border: 1px solid rgba(76,208,138,0.22);
+}
+.theme-light .wan_rate_tx { border-color: rgba(24,128,86,0.22); }
+.wan_rate_val {
+  font-size: 0.96em;
+  font-weight: 540;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  line-height: 1.25;
+  margin-top: -1px;
+}
+.wan_rate_rx .wan_rate_val { color: var(--rx-tint); }
+.wan_rate_tx .wan_rate_val { color: var(--tx-tint); }
+.wan_rate_meta {
+  font-size: 0.63em;
+  font-weight: 500;
+  white-space: nowrap;
+  letter-spacing: 0.25px;
+  line-height: 1;
+  margin-top: 1px;
+  margin-bottom: -2px;
+}
+.wan_rate_rx .wan_rate_meta { color: var(--rx-tint); opacity: 0.55; }
+.wan_rate_tx .wan_rate_meta { color: var(--tx-tint); opacity: 0.55; }
+.wan_rate_meta i { font-size: 0.85em; }
+
+/* ── WAN avg/max stat row ── */
+.wan_sub_stat { font-size: 0.75em; margin-left: 2px; margin-bottom: -3px; }
+
+/* ── Per-client traffic button ── */
+.wan_client_btn_wrap { margin-top: 4px; margin-bottom: 1px; }
+.wan_client_btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(33,150,243,0.22);
+  background: rgba(33,150,243,0.07);
+  color: #64b5f6;
+  font-size: 0.80em;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-decoration: none;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.wan_client_btn:hover {
+  background: rgba(33,150,243,0.16);
+  border-color: rgba(33,150,243,0.42);
+  color: #90caf9;
+}
+.wan_client_btn_ext { font-size: 0.78em; opacity: 0.55; }
+.theme-light .wan_client_btn {
+  border-color: rgba(24,96,170,0.25);
+  background: rgba(24,96,170,0.07);
+  color: #1860aa;
+}
+.theme-light .wan_client_btn:hover {
+  background: rgba(24,96,170,0.14);
+  border-color: rgba(24,96,170,0.40);
+  color: #0d4a8a;
+}
+
+/* ── WAN unit dropdown ── */
+.wan-unit-dropdown {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  margin-right: 4px;
+}
+.wan-unit-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  font-size: 0.85em;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--pale-white);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.wan-unit-trigger:hover {
+  background: rgba(255,255,255,0.11);
+  border-color: rgba(255,255,255,0.26);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.theme-light .wan-unit-trigger {
+  background: rgba(0,0,0,0.05);
+  border-color: rgba(0,0,0,0.16);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+}
+.theme-light .wan-unit-trigger:hover { background: rgba(0,0,0,0.10); }
+.wan-unit-chevron {
+  opacity: 0.6;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+}
+.wan-unit-dropdown.open .wan-unit-chevron { transform: rotate(180deg); }
+.wan-unit-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 5px);
+  min-width: 108px;
+  background: rgba(18,22,30,0.97);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.04) inset;
+  overflow: hidden;
+  display: none;
+  backdrop-filter: blur(12px);
+}
+.wan-unit-dropdown.open .wan-unit-menu {
+  display: block;
+  animation: wanMenuIn 0.15s cubic-bezier(0.2,0,0.2,1) forwards;
+}
+@keyframes wanMenuIn {
+  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+.wan-unit-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 11px;
+  font-size: 0.78em;
+  font-weight: 600;
+  color: rgba(255,255,255,0.72);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  gap: 8px;
+  letter-spacing: 0.2px;
+}
+.wan-unit-option:hover  { background: rgba(255,255,255,0.08); color: #fff; }
+.wan-unit-option.active { background: rgba(78,168,255,0.14);  color: #fff; }
+.wan-unit-hint { font-size: 0.82em; font-weight: 400; opacity: 0.5; }
+.theme-light .wan-unit-menu    { background: rgba(250,251,253,0.98); border-color: rgba(0,0,0,0.12); box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
+.theme-light .wan-unit-option  { color: rgba(16,18,20,0.72); }
+.theme-light .wan-unit-option:hover  { background: rgba(0,0,0,0.06); color: rgba(16,18,20,1); }
+.theme-light .wan-unit-option.active { background: rgba(24,96,170,0.10); color: rgba(16,18,20,1); }
+
+/* ── Clients tile layout ── */
+.cl_tile {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.cl_tile--spaced { margin-top: 6px; }
+.theme-light .cl_tile { border-color: rgba(0,0,0,0.06); }
+.cl_tile_head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.055);
+  font-weight: 600;
+  font-size: 0.92em;
+}
+.theme-light .cl_tile_head { background: rgba(0,0,0,0.04); }
+.cl_tile_head_left { display: flex; align-items: center; gap: 6px; }
+.cl_tile_icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82em;
+  flex-shrink: 0;
+}
+.cl_icon_wifi { background: rgba(33,150,243,0.22); color: #64b5f6; }
+.cl_icon_lan  { background: rgba(67,160,71,0.22);  color: #81c784; }
+.cl_badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 20px;
+  font-size: 0.75em;
+  font-weight: 700;
+}
+.cl_badge_wifi { background: rgba(33,150,243,0.20); border: 1px solid rgba(33,150,243,0.38); color: #64b5f6; }
+.cl_badge_lan  { background: rgba(67,160,71,0.20);  border: 1px solid rgba(67,160,71,0.38);  color: #6ed472; }
+.cl_tile_body { padding: 4px 12px 5px; display: flex; flex-direction: column; gap: 0; }
+
+/* AP rows */
+.cl_ap_row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82em;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.cl_ap_row:last-child { border-bottom: none; }
+.theme-light .cl_ap_row { border-bottom-color: rgba(0,0,0,0.05); }
+.cl_ap_row .ap_name  { flex: 1; color: var(--pale-white); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cl_ap_row .ap_count { font-weight: 700; color: var(--pale-white-strong); min-width: 14px; text-align: right; }
+
+/* Band badges */
+.cl_band {
+  font-size: 0.76em;
+  font-weight: 600;
+  padding: 0 2px;
+  min-width: 40px;
+  text-align: center;
+  max-height: 18px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.cl_band_5g  { background: rgba(33,150,243,0.15); border: 1px solid rgba(33,150,243,0.28); color: #64b5f6; }
+.cl_band_24g { background: rgba(255,167,38,0.13);  border: 1px solid rgba(255,167,38,0.26);  color: #ffb74d; }
+.cl_band_6g  { background: rgba(171,71,188,0.16);  border: 1px solid rgba(171,71,188,0.28);  color: #ce93d8; }
+
+/* Signal quality */
+.cl_signal { display: inline-flex; align-items: center; flex-shrink: 0; line-height: 0; }
+
+/* Wireless controller temp footer */
+.cl_temp_foot {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(255,152,0,0.04);
+  border-top: 1px solid rgba(255,255,255,0.05);
+  font-size: 0.81em;
+  color: var(--pale-white);
+  opacity: 0.75;
+}
+.theme-light .cl_temp_foot { border-top-color: rgba(0,0,0,0.06); }
+.cl_temp_foot > i { opacity: 0.55; font-size: 0.9em; }
+.cl_temp_val { font-weight: 600; color: var(--pale-white-strong); margin-left: auto; opacity: 1; }
+.cl_temp_val + .cl_tdot { margin-left: 5px; }
+.cl_tdot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+.cl_tdot.ok   { background: #43a047; box-shadow: 0 0 4px rgba(67,160,71,0.75); }
+.cl_tdot.warm { background: #fb8c00; box-shadow: 0 0 4px rgba(251,140,0,0.75); }
+.cl_tdot.hot  { background: #e53935; box-shadow: 0 0 4px rgba(229,57,53,0.75); }
+
+/* LAN port rows */
+.cl_lan_row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.80em;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.cl_lan_row:last-child { border-bottom: none; }
+.theme-light .cl_lan_row { border-bottom-color: rgba(0,0,0,0.05); }
+.cl_lan_row .lan_name   { color: var(--pale-white); }
+.cl_lan_row .lan_name i { opacity: 0.45; margin-right: 4px; }
+.cl_lan_spacer          { flex: 1; }
+.cl_speed {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 8.5px;
+  font-weight: 550;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+.cl_speed_gig { background: rgba(67,160,71,0.13); border: 1px solid rgba(67,160,71,0.26); color: #81c784; }
+.cl_speed_100 { background: rgba(255,167,38,0.12); border: 1px solid rgba(255,167,38,0.24); color: #ffb74d; }
+
+/* Bridge/AP hint badge — matches crt hint-badge-bridge exactly */
+.cl_hint_badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 8.5px;
+  font-weight: 550;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+.cl_hint_badge_bridge {
+  background: rgba(99,102,241,0.13);
+  border: 1px solid rgba(99,102,241,0.30);
+  color: #818cf8;
+}
+.theme-light .cl_hint_badge_bridge {
+  background: rgba(99,102,241,0.10);
+  border-color: rgba(99,102,241,0.25);
+  color: #6366f1;
+}
+
+/* Client count badge — indigo circle after speed pill */
+.cl_mac_count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: rgba(99,102,241,0.15);
+  border: 1px solid rgba(99,102,241,0.32);
+  color: #fffff;
+  font-size: 0.85em;
+  font-weight: 650;
+  flex-shrink: 0;
+}
+.theme-light .cl_mac_count {
+  background: rgba(99,102,241,0.10);
+  border-color: rgba(99,102,241,0.25);
+  color: #6366f1;
+}
+
+/* Port dot strip */
+.cl_port_strip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px 5px;
+  background: rgba(67,160,71,0.03);
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.theme-light .cl_port_strip { border-top-color: rgba(0,0,0,0.06); }
+.cl_port_strip_label { font-size: 0.76em; color: var(--pale-white); opacity: 0.40; flex-shrink: 0; }
+.cl_port_dots { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.cl_port_dot { width: 12px; height: 12px; border-radius: 3px; }
+.cl_port_dot.active_gig  { background: rgba(67,160,71,0.75);  border: 1px solid rgba(67,160,71,0.45); }
+.cl_port_dot.active_100m { background: rgba(255,167,38,0.70); border: 1px solid rgba(255,167,38,0.42); }
+.cl_port_dot.inactive    { background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.05); }
+.theme-light .cl_port_dot.inactive { background: rgba(0,0,0,0.10); border-color: rgba(0,0,0,0.08); }
+.cl_port_dot_wan {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 7px;
+}
+.cl_port_dot_wan.wan_online {
+  background: rgba(33,150,243,0.70);
+  border: 1px solid rgba(33,150,243,0.50);
+  color: rgba(255,255,255,0.90);
+  box-shadow: 0 0 5px rgba(33,150,243,0.35);
+}
+.cl_port_dot_wan.wan_offline {
+  background: rgba(220,60,60,0.65);
+  border: 1px solid rgba(220,60,60,0.45);
+  color: rgba(255,255,255,0.80);
+}
+.cl_wan_sep {
+  width: 1px;
+  height: 14px;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.12);
+  border-radius: 1px;
+}
+.theme-light .cl_wan_sep { background: rgba(0,0,0,0.12); }
+.cl_no_lan { text-align: center; font-style: italic; opacity: 0.65; font-size: 0.85em; padding: 4px 0; }
+.wifi_ap_faded { opacity: 0.5; font-style: italic; }
+
+/* ── Usage ── */
+.rx_col { color: rgba(78,168,255,0.92); }
+.tx_col { color: rgba(76,208,138,0.92); }
+.theme-light .rx_col { color: rgba(24,96,170,0.92); }
+.theme-light .tx_col { color: rgba(24,128,86,0.92); }
+.usage_total_row {
+  display: flex;
+  align-items: flex-end;
+  padding: 2px 0 10px;
+}
+.usage_total_block { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.usage_total_label {
+  font-size: 0.70em;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  opacity: 0.45;
+}
+.usage_total_val {
+  font-size: 1.4em;
+  font-weight: 700;
+  line-height: 1;
+  color: rgba(255,255,255,0.88);
+}
+.theme-light .usage_total_val { color: rgba(16,18,20,0.88); }
+.usage_total_divider {
+  width: 1px;
+  background: rgba(255,255,255,0.08);
+  align-self: stretch;
+  margin: 2px 0;
+}
+.theme-light .usage_total_divider { background: rgba(0,0,0,0.06); }
+.usage_period_tile {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.05);
+  margin-bottom: 7px;
+}
+.usage_period_tile:last-of-type { margin-bottom: 0; }
+.theme-light .usage_period_tile { border-color: rgba(0,0,0,0.06); }
+.usage_pt_head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.055);
+  font-weight: 600;
+  font-size: 0.84em;
+}
+.theme-light .usage_pt_head { background: rgba(0,0,0,0.04); }
+.usage_pt_icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78em;
+  flex-shrink: 0;
+}
+.usage_icon_today   { background: rgba(186,143,69,0.22); color: #e8b86d; }
+.usage_icon_monthly { background: rgba(126,87,194,0.22); color: #b39ddb; }
+.usage_pt_body { display: flex; }
+.usage_pt_cell {
+  flex: 1;
+  padding: 7px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border-right: 1px solid rgba(255,255,255,0.05);
+}
+.usage_pt_cell:last-child { border-right: none; }
+.theme-light .usage_pt_cell { border-right-color: rgba(0,0,0,0.06); }
+.usage_ck {
+  font-size: 0.70em;
+  opacity: 0.48;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.usage_cv { font-size: 0.90em; font-weight: 700; }
+
+/* Graphs link button */
+.usage_graphs_btn_wrap { margin-top: 8px; }
+.usage_graphs_btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(186,143,69,0.22);
+  background: rgba(186,143,69,0.07);
+  color: #c9a05a;
+  font-size: 0.80em;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.usage_graphs_btn:hover {
+  background: rgba(186,143,69,0.16);
+  border-color: rgba(186,143,69,0.42);
+  color: #e8b86d;
+}
+.usage_graphs_ext { font-size: 0.78em; opacity: 0.55; }
+.theme-light .usage_graphs_btn {
+  border-color: rgba(150,110,40,0.25);
+  background: rgba(150,110,40,0.07);
+  color: #8a6420;
+}
+.theme-light .usage_graphs_btn:hover {
+  background: rgba(150,110,40,0.14);
+  border-color: rgba(150,110,40,0.40);
+  color: #6b4c10;
+}
+
+/* ── vnStat warning banner ── */
+.vnstat_warn {
+  margin: 6px 0 10px;
+  padding: 10px 13px;
+  border-radius: 8px;
+  font-size: 0.82em;
+  font-weight: 600;
+  line-height: 1.55;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.vnstat_warn i { flex-shrink: 0; font-size: 1.05em; }
+.vnstat_warn.warn--missing {
+  background: rgba(220,70,60,0.09);
+  border: 1px solid rgba(220,70,60,0.22);
+  color: rgba(240,130,120,0.92);
+}
+.theme-light .vnstat_warn.warn--missing {
+  background: rgba(200,50,40,0.07);
+  border-color: rgba(200,50,40,0.20);
+  color: rgba(160,40,30,0.90);
+}
+.vnstat_warn.warn--broken {
+  background: rgba(200,140,0,0.09);
+  border: 1px solid rgba(200,140,0,0.22);
+  color: rgba(230,175,60,0.95);
+}
+.theme-light .vnstat_warn.warn--broken {
+  background: rgba(160,110,0,0.07);
+  border-color: rgba(160,110,0,0.22);
+  color: rgba(120,80,0,0.90);
+}
+.vnstat_warn a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  opacity: 0.85;
+}
+.vnstat_warn a:hover { opacity: 1; }
+
+/* ── WAN down message ── */
+#wan_down_msg {
+  display: none;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 0.82em;
+  font-weight: 600;
+  color: rgba(220,80,70,0.90);
+  background: rgba(180,40,30,0.08);
+  border: 1px solid rgba(200,60,50,0.20);
+  border-radius: 5px;
+  padding: 6px 10px;
+  margin: 4px 0 2px;
+  line-height: 1.45;
+  letter-spacing: 0.1px;
+}
+#wan_down_msg i {
+  flex-shrink: 0;
+  font-size: 0.95em;
+  opacity: 0.80;
+  margin-top: 0.15em;
+}
+.theme-light #wan_down_msg {
+  color: rgba(180,30,20,0.92);
+  background: rgba(180,40,30,0.06);
+  border-color: rgba(180,40,30,0.18);
+}
+
+.control_card { margin-top: -25px !important;}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  #custom_status_container { max-width: 1100px; font-family: sans-serif; }
+  .status_card { width: 100%; max-width: 100%; margin-bottom: 8px; }
+  .status_card.usage { min-height: auto; padding: 10px 8px; }
+  .wan-unit-trigger { font-size: 0.65em !important; padding: 1px 4px !important; gap: 2px !important; }
+  .wan-unit-chevron { width: 7px !important; height: 7px !important; }
+  #netChart { height: 130px !important; }
+  .wan_block { gap: 2px; }
+  .wan_rate_box { padding: 6px 16px 5px; }
+  .wan_rate_val { font-size: 0.95em; }
+  .wan_rate_meta { font-size: 0.61em; }
+  .wan_sub_stat { font-size: 0.65em; margin-top: 8px; margin-bottom: 0; }
+}
+@media (max-width: 480px) {
+  .wan-unit-trigger { font-size: 0.70em !important; padding: 1px 3px !important; gap: 2px !important; border-radius: 4px !important; }
+  .wan-unit-chevron { width: 6px !important; height: 6px !important; }
+  #netChart { height: 130px !important; }
+  .wan_rate_box { padding: 1px 13px 2px; }
+  .wan_rate_val { font-size: 0.88em; margin-top: 0px !important; }
+  .wan_rate_meta { font-size: 0.58em; margin-bottom: 0px !important;}
+  .adb_domains { font-size: .55em; }
+  .sub_stat_chunk { white-space: nowrap; font-size: .93em; margin-top: 2px; margin-bottom: -2px; }
+  .sub_stat_sep   { opacity: 0.3; margin: 2px 3px 0; margin-bottom: -2px; }
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   Dashboard — all scripts consolidated
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Clock ── */
+(function () {
+  const elTime   = document.getElementById("current_time");
+  const elAmpm   = document.getElementById("tile_ampm");
+  const elDate   = document.getElementById("tile_date");
+  const days     = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const months   = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function updateClock() {
+    const now = new Date();
+    let h = now.getHours();
+    const ap = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    const hh = String(h).padStart(2,"0");
+    const mm = String(now.getMinutes()).padStart(2,"0");
+    const ss = String(now.getSeconds()).padStart(2,"0");
+    if (elTime) elTime.textContent = hh + ":" + mm + ":" + ss;
+    if (elAmpm) elAmpm.textContent = ap;
+    if (elDate) elDate.textContent = days[now.getDay()] + ", " + months[now.getMonth()] + " " + now.getDate();
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+})();
+
+/* ── Force refresh ── */
+(function () {
+  const btn = document.getElementById("force_refresh_btn");
+  if (!btn) return;
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    try {
+      await fetch("/cgi-bin/luci/admin/status/dashboard/force");
+      window.CustomRealtime.lastUpdate.adblock = 0;
+      await window.CustomRealtime.update(true);
+    } catch (e) {
+      console.warn("Force refresh failed:", e);
+    }
+    setTimeout(() => { btn.disabled = false; }, 2000);
+  });
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   localStorage cache key + helpers
+   ══════════════════════════════════════════════════════════════ */
+const CACHE_KEY = "__dashboard_cache_v1";
+
+function savePageCache(data) {
+  try {
+    const snapshot = {
+      ts: Date.now(),
+      system_uptime_seconds: data.system_uptime_seconds,
+      cpu_temp:  data.cpu_temp,
+      wifi_temp: data.wifi_temp,
+      network:   data.network,
+      mem:       data.mem,
+      wifi:      { total: data.wifi && data.wifi.total, aps: data.wifi && data.wifi.aps },
+      lan:       data.lan,
+      adblock:   data.adblock,
+      vnstat:    data.vnstat,
+    };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(snapshot));
+  } catch (_) {}
+}
+
+// Cache is considered fresh if it was written within this window.
+// Matches the slowest fast-changing metric (clients/RAM = 20 s).
+// Anything older is treated as absent — show the loading overlay instead.
+const MAX_CACHE_AGE_MS = 20000;
+
+function loadPageCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.ts) return null;
+    if ((Date.now() - parsed.ts) > MAX_CACHE_AGE_MS) return null;
+    return parsed;
+  } catch (_) { return null; }
+}
+
+const STALE_IDS = [
+  "net_public_ip","net_public_ipv6","net_isp","net_wan_uptime",
+  "system_uptime_control","cpuPercentText","cpuTempBadge",
+  "custom_mem","mem_free_text","mem_arc_pct",
+  "custom_wifi_total","custom_wifi_temp",
+  "custom_lan_total",
+  "vn_daily_total","vn_monthly_total",
+  "vn_daily_rx","vn_daily_tx","vn_monthly_rx","vn_monthly_tx",
+  "adb_status_val","adb_domains_val",
+  "wan_rx_value","wan_tx_value"
+];
+function markStale() {
+  STALE_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add("stale-value");
+  });
+}
+function markFresh() {
+  const overlay = document.getElementById("dashboard_loading_overlay");
+  if (overlay) {
+    overlay.classList.add("dlo_hidden");
+    // Remove from DOM after fade so it can't intercept any future events
+    const onDone = () => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); };
+    overlay.addEventListener("transitionend", onDone, { once: true });
+    // Fallback in case transitionend never fires (e.g. reduced-motion)
+    setTimeout(onDone, 500);
+  }
+  STALE_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.remove("stale-value");
+      el.classList.add("freshened");
+      setTimeout(() => el.classList.remove("freshened"), 600);
+    }
+  });
+}
+
+/* ── Realtime data object ── */
+window.CustomRealtime = {
+  config: {
+    fetchInterval:         2000,
+    minDeltaGap:           350,
+    wifiTempInterval:      5000,
+    wifiCountsInterval:    20000,
+    clientsUpdateInterval: 20000,
+    vnstatUpdateInterval:  300000,
+    adblockUpdateInterval: 300000,
+    memInterval:           20000,
+    wifiTempMax:           90
+  },
+
+  etag:             null,
+  lastCpu:          null,
+  prevRX:           null,
+  prevTX:           null,
+  prevTime:         null,
+  _updating:        false,
+  _bypassMinDelta:  false,
+  _firstFetchDone:  false,
+
+  lastUpdate: { wifiTemp: 0, wifiCounts: 0, clients: 0, vnstat: 0, mem: 0, adblock: 0 },
+  memSparkHistory: [],
+  elements: {},
+
+  cpuHistory:       [],
+  rxHistory:        [],
+  txHistory:        [],
+  coreHistories:    [],
+  lastCoreCounters: {},
+
+  wanUnit: "MBs",
+  vnstatIface:          null,
+  lastVnstatData:       null,
+  _lastVnstatIfaceList: null,
+
+  applyCachedData(cached) {
+    if (!cached) return;
+    const el = this.elements;
+
+    if (el.system_uptime_control && cached.system_uptime_seconds != null)
+      el.system_uptime_control.textContent = this.formatUptimeFlex(Number(cached.system_uptime_seconds));
+
+    if (cached.network) this.applyNetworkFields(cached.network, true);
+
+    if (el.cpuTempBadge && cached.cpu_temp != null) {
+      const t = Number(cached.cpu_temp) || 0;
+      el.cpuTempBadge.textContent = Math.round(t) + " °C";
+      el.cpuTempBadge.className   = "temp_badge " + (t > 75 ? "temp_badge_hot" : t > 60 ? "temp_badge_warm" : "temp_badge_ok");
+    }
+
+    if (cached.mem) {
+      const total  = Number(cached.mem.total) || 0;
+      const avail  = Number(cached.mem.avail) || 0;
+      const memPct = total > 0 ? (total - avail) / total * 100 : 0;
+      const arcColor = memPct < 70 ? "#26c6da" : memPct < 87 ? "#b07d10" : "#b33329";
+      if (el.mem_arc_fill) {
+        el.mem_arc_fill.style.strokeDashoffset = (113 * (1 - memPct / 100)).toFixed(2);
+        el.mem_arc_fill.style.stroke = arcColor;
+      }
+      if (el.mem_arc_pct) el.mem_arc_pct.textContent = memPct.toFixed(1) + "%";
+      const fmt = mb => mb > 1024 ? (mb / 1024).toFixed(2) + " GB" : mb.toFixed(1) + " MB";
+      if (el.custom_mem)    el.custom_mem.textContent    = fmt((total - avail) / 1024);
+      if (el.mem_free_text) el.mem_free_text.textContent = fmt(avail / 1024);
+      if (this.memSparkHistory.length === 0) {
+        for (let i = 0; i < 20; i++) this.memSparkHistory.push(memPct);
+        this.drawSparkline();
+      }
+    }
+
+    if (cached.wifi && el.custom_wifi_total)
+      el.custom_wifi_total.textContent = cached.wifi.total || 0;
+
+    if (cached.wifi_temp != null && el.custom_wifi_temp)
+      el.custom_wifi_temp.textContent = Math.round(Number(cached.wifi_temp) || 0) + " °C";
+
+    if (cached.lan && el.custom_lan_total)
+      el.custom_lan_total.textContent = cached.lan.total || 0;
+
+    if (cached.adblock) {
+      const adb      = cached.adblock;
+      const iconWrap = document.querySelector(".adb_icon_wrap");
+      const adbNotInstalled = adb.installed === false
+        || (adb.installed == null && !adb.status);
+      if (adbNotInstalled) {
+        if (el.adb_status_val) {
+          el.adb_status_val.style.display = "";
+          el.adb_status_val.textContent   = "Not Installed";
+          el.adb_status_val.style.color   = "rgba(220,80,80,0.65)";
+        }
+        if (el.adb_domains_val) { el.adb_domains_val.textContent = ""; }
+        if (iconWrap) iconWrap.classList.remove("adb_enabled");
+        if (el.adb_widget_link) {
+          el.adb_widget_link.href  = "/cgi-bin/luci/admin/system/package-manager";
+          el.adb_widget_link.title = "Click to Install Adblock Package";
+        }
+      } else {
+        const status  = (adb.status || "").toLowerCase();
+        const enabled = (status === "enabled");
+        const stopped = (status === "stopped" || status === "");
+        if (el.adb_status_val) {
+          el.adb_status_val.style.display = "";
+          el.adb_status_val.textContent   = enabled ? "Enabled" : (stopped ? "Stopped" : "Disabled");
+          el.adb_status_val.style.color   = enabled ? "#66bb6a" : (stopped ? "rgba(255,255,255,0.35)" : "#ef5350");
+        }
+        if (iconWrap) iconWrap.classList.toggle("adb_enabled", enabled);
+        if (el.adb_domains_val) {
+          const n = parseInt(String(adb.blocked_domains || "0").replace(/[^0-9]/g, ""), 10) || 0;
+          const label = n >= 1000 ? (n / 1000).toFixed(0) + "K" : String(n);
+          el.adb_domains_val.textContent = enabled ? (n >= 1000 ? (n / 1000).toFixed(0) + "K" : String(n)) + " domains blocked" : "";
+        }
+        if (el.adb_widget_link) {
+          el.adb_widget_link.href  = "/cgi-bin/luci/admin/services/adblock";
+          el.adb_widget_link.title = "Open Adblock settings";
+        }
+      }
+    }
+
+    if (cached.vnstat) {
+      this.lastVnstatData = cached.vnstat;
+      this.renderVnstatData(cached.vnstat);
+    }
+  },
+
+  computeCoreUsage(currCores) {
+    const ordered = Object.keys(currCores)
+      .sort((a, b) => Number(a.replace(/^\D+/, "")) - Number(b.replace(/^\D+/, "")))
+      .map(k => ({ name: k, curr: currCores[k], prev: this.lastCoreCounters[k] }));
+
+    const hasprev = ordered.some(({ prev }) => !!prev);
+    this.lastCoreCounters = {};
+    ordered.forEach(({ name, curr }) => { this.lastCoreCounters[name] = curr; });
+    if (!hasprev) return null;
+
+    return ordered.map(({ curr, prev }) => {
+      if (!prev) return 0;
+      const pT = prev.usr + prev.nice + prev.sys + prev.idle + prev.iowait + prev.irq + prev.softirq + prev.steal;
+      const cT = curr.usr + curr.nice + curr.sys + curr.idle + curr.iowait + curr.irq + curr.softirq + curr.steal;
+      const dT = cT - pT, dI = curr.idle - prev.idle;
+      return dT > 0 ? ((dT - dI) / dT) * 100 : 0;
+    });
+  },
+
+  renderVnstatData(vnstat) {
+    const warnEl    = document.getElementById("vnstat_warning");
+    const contentEl = document.getElementById("vnstat_content");
+    const el        = this.elements;
+    if (!vnstat) return;
+
+    const installed = vnstat.installed !== false;
+    if (!installed) {
+      if (warnEl) {
+        warnEl.className = "vnstat_warn warn--missing";
+        warnEl.innerHTML = "<i class=\"fas fa-circle-xmark\"></i><span>vnStat is not installed. Bandwidth usage data is unavailable.</span>";
+        warnEl.style.display = "flex";
+      }
+      if (contentEl) contentEl.style.display = "none";
+      return;
+    }
+
+    const ifaces    = Array.isArray(vnstat.ifaces) ? vnstat.ifaces : [];
+    const ifaceNames = ifaces.map(f => (typeof f === "object" ? f.name : f));
+    const sel        = (this.vnstatIface && ifaceNames.includes(this.vnstatIface))
+                       ? this.vnstatIface : (ifaceNames[0] || null);
+    const ifaceData = (vnstat.data && sel) ? (vnstat.data[sel] || {}) : {};
+    const d = ifaceData.daily   || {};
+    const m = ifaceData.monthly || {};
+
+    const isEmpty  = v => !v || v === "N/A" || v === "0" || v === "0 B" || v === "0.00 B";
+    const allEmpty = [d.rx, d.tx, d.total, m.rx, m.tx, m.total].every(isEmpty);
+
+    if (allEmpty) {
+      if (warnEl) {
+        warnEl.className = "vnstat_warn warn--broken";
+        warnEl.innerHTML = "<i class=\"fas fa-triangle-exclamation\"></i><span>vnStat may not be working properly. <a href=\"/cgi-bin/luci/admin/status/vnstat2/config\">Check vnStat settings</a></span>";
+        warnEl.style.display = "flex";
+      }
+      if (contentEl) contentEl.style.display = "none";
+      return;
+    }
+
+    if (warnEl)    { warnEl.style.display = "none"; warnEl.className = "vnstat_warn"; }
+    if (contentEl) contentEl.style.display = "";
+
+    if (el.vn_daily_rx)      el.vn_daily_rx.textContent      = d.rx    || "N/A";
+    if (el.vn_daily_tx)      el.vn_daily_tx.textContent      = d.tx    || "N/A";
+    if (el.vn_daily_total)   el.vn_daily_total.textContent   = d.total || "N/A";
+    if (el.vn_monthly_rx)    el.vn_monthly_rx.textContent    = m.rx    || "N/A";
+    if (el.vn_monthly_tx)    el.vn_monthly_tx.textContent    = m.tx    || "N/A";
+    if (el.vn_monthly_total) el.vn_monthly_total.textContent = m.total || "N/A";
+    const today = new Date();
+    if (el.vn_daily_header)   el.vn_daily_header.textContent   = `Today - ${today.toLocaleString([], { month: "short" })} ${today.getDate()}`;
+    if (el.vn_monthly_header) el.vn_monthly_header.textContent = today.toLocaleString([], { month: "long" });
+  },
+
+  cacheElements() {
+    [
+      "net_status", "net_public_ip", "net_public_ipv6", "ipv6_block",
+      "net_isp", "net_wan_uptime", "net_wan_uptime_label",
+      "custom_mem", "mem_bar", "mem_arc_fill", "mem_arc_pct",
+      "custom_wifi_total", "custom_wifi_temp", "wifi_temp_dot", "wifi_temp_foot",
+      "custom_lan_total", "custom_lan_ports", "custom_lan_port_dots", "custom_lan_port_strip",
+      "vn_daily_rx", "vn_daily_tx", "vn_daily_total",
+      "vn_monthly_rx", "vn_monthly_tx", "vn_monthly_total",
+      "vn_daily_header", "vn_monthly_header",
+      "cpuPercentText", "cpuBarFill", "cpuTempBadge", "cpuAvgText", "cpuMaxText",
+      "wan_rx_value", "wan_tx_value", "wan_rx_avg", "wan_rx_max", "wan_tx_avg", "wan_tx_max"
+    ].forEach(id => { this.elements[id] = document.getElementById(id); });
+
+    this.elements.system_uptime_control = document.getElementById("system_uptime_control");
+    this.elements.adb_status_val        = document.getElementById("adb_status_val");
+    this.elements.adb_domains_val       = document.getElementById("adb_domains_val");
+    this.elements.adb_widget_link        = document.getElementById("adb_widget_link");
+    this.elements.mem_free_text         = document.getElementById("mem_free_text");
+    this.elements.mem_sparkline         = document.getElementById("mem_sparkline");
+    this.elements.mem_spark_tooltip     = document.getElementById("mem_spark_tooltip");
+    this.elements.wan_uptime_row        = document.getElementById("wan_uptime_row");
+    this.elements.wan_down_msg          = document.getElementById("wan_down_msg");
+
+    const sparkCanvas  = this.elements.mem_sparkline;
+    const sparkTooltip = this.elements.mem_spark_tooltip;
+    if (sparkCanvas && sparkTooltip) {
+      sparkCanvas.addEventListener("mousemove", (e) => {
+        const pts = this.memSparkHistory;
+        if (!pts.length) return;
+        const rect    = sparkCanvas.getBoundingClientRect();
+        const mx      = e.clientX - rect.left;
+        const idx     = Math.round((mx / rect.width) * (pts.length - 1));
+        const clamped = Math.max(0, Math.min(pts.length - 1, idx));
+        sparkTooltip.textContent   = pts[clamped].toFixed(1) + "%";
+        sparkTooltip.style.display = "block";
+        const hw       = sparkTooltip.offsetWidth / 2;
+        const clampedX = Math.max(hw, Math.min(rect.width - hw, mx));
+        sparkTooltip.style.left = clampedX + "px";
+        this._sparkHoverIdx = clamped;
+        this.drawSparkline(clamped);
+      });
+      sparkCanvas.addEventListener("mouseleave", () => {
+        sparkTooltip.style.display = "none";
+        this._sparkHoverIdx = null;
+        this.drawSparkline();
+      });
+
+      if (typeof ResizeObserver !== "undefined") {
+        new ResizeObserver(() => {
+          this.drawSparkline(this._sparkHoverIdx != null ? this._sparkHoverIdx : null);
+        }).observe(sparkCanvas);
+      }
+    }
+  },
+
+  drawSparkline(hoverIdx = null) {
+    const canvas = this.elements.mem_sparkline;
+    if (!canvas || !canvas.getContext) return;
+    const pts = this.memSparkHistory;
+    if (pts.length < 2) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w   = canvas.offsetWidth  || 80;
+    const h   = canvas.offsetHeight || 28;
+    canvas.width  = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    const ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    const padT = 3, padB = 3;
+    const coords = pts.map((v, i) => [
+      (i / (pts.length - 1)) * w,
+      padT + (1 - Math.min(100, Math.max(0, v)) / 100) * (h - padT - padB)
+    ]);
+
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, "rgba(38,198,218,0.28)");
+    grad.addColorStop(1, "rgba(38,198,218,0)");
+    ctx.beginPath();
+    ctx.moveTo(coords[0][0], h);
+    coords.forEach(([x, y]) => ctx.lineTo(x, y));
+    ctx.lineTo(coords[coords.length - 1][0], h);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.beginPath();
+    coords.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+    ctx.strokeStyle = "#26c6da";
+    ctx.lineWidth   = 1;
+    ctx.stroke();
+
+    if (hoverIdx !== null && hoverIdx >= 0 && hoverIdx < coords.length) {
+      const [hx, hy] = coords[hoverIdx];
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(hx, 0);
+      ctx.lineTo(hx, h);
+      ctx.strokeStyle = "rgba(38,198,218,0.40)";
+      ctx.lineWidth   = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.stroke();
+      ctx.restore();
+      ctx.beginPath();
+      ctx.arc(hx, hy, 3, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.25)";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(hx, hy, 2, 0, Math.PI * 2);
+      ctx.fillStyle = "#26c6da";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(hx, hy, 2, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255,255,255,0.90)";
+      ctx.lineWidth   = 1;
+      ctx.stroke();
+    }
+  },
+
+  refreshWanRates() {
+    const rxH = this.rxHistory, txH = this.txHistory;
+    if (!rxH.length) return;
+    const last   = rxH.length - 1;
+    const rxAvg  = rxH.reduce((a, b) => a + b, 0) / rxH.length;
+    const txAvg  = txH.reduce((a, b) => a + b, 0) / txH.length;
+    const el     = this.elements;
+    if (el.wan_rx_value) el.wan_rx_value.textContent = this.formatWanRate(rxH[last]);
+    if (el.wan_tx_value) el.wan_tx_value.textContent = this.formatWanRate(txH[last]);
+    if (el.wan_rx_avg)   el.wan_rx_avg.textContent   = this.formatWanRate(rxAvg);
+    if (el.wan_rx_max)   el.wan_rx_max.textContent   = this.formatWanRate(Math.max(...rxH));
+    if (el.wan_tx_avg)   el.wan_tx_avg.textContent   = this.formatWanRate(txAvg);
+    if (el.wan_tx_max)   el.wan_tx_max.textContent   = this.formatWanRate(Math.max(...txH));
+  },
+
+  updateBar(el, value, max = 100, greenEnd = 60, yellowEnd = 90) {
+    if (!el) return;
+    const pct = Math.min(100, Math.max(0, (Number(value) || 0) / (Number(max) || 100) * 100));
+    let cs, ce;
+    if (pct <= greenEnd)       { cs = "hsl(120,100%,45%)"; ce = "hsl(90,100%,50%)"; }
+    else if (pct <= yellowEnd) { cs = "hsl(90,100%,50%)";  ce = "hsl(50,100%,50%)"; }
+    else                       { cs = "hsl(50,100%,50%)";  ce = "hsl(0,100%,50%)"; }
+    el.style.width      = pct + "%";
+    el.style.background = `linear-gradient(to right, ${cs}, ${ce})`;
+  },
+
+  async fetchData(force = false) {
+    const headers = {};
+    if (!force && this.etag) headers["If-None-Match"] = this.etag;
+    const res = await fetch("/cgi-bin/luci/admin/status/dashboard", { headers });
+    if (res.status === 304) return null;
+    if (!res.ok) throw new Error("Failed fetch (HTTP " + res.status + ")");
+    const et = res.headers.get("ETag");
+    if (et) this.etag = et.replace(/"/g, "");
+    const json = await res.json();
+    if (json && json.error) {
+      console.error("Lua error:", json.error);
+      throw new Error("Lua: " + json.error);
+    }
+    return json;
+  },
+
+  formatWanRate(bps) {
+    if (!isFinite(bps) || bps < 0) bps = 0;
+    if (this.wanUnit === "Mbps") {
+      const mbps = bps * 8 / 1e6;
+      if (mbps >= 1000) return (mbps / 1000).toFixed(2) + " Gbps";
+      if (mbps >= 1)    return mbps.toFixed(2) + " Mbps";
+      return (bps * 8 / 1e3).toFixed(1) + " Kbps";
+    }
+    if (bps >= 1073741824) return (bps / 1073741824).toFixed(2) + " GB/s";
+    if (bps >= 1048576)    return (bps / 1048576).toFixed(2)    + " MB/s";
+    if (bps >= 1024)       return (bps / 1024).toFixed(1)       + " KB/s";
+    return bps.toFixed(0) + " B/s";
+  },
+
+  writeTemp(el, val) {
+    if (el) el.innerHTML = (Number(val) || 0).toFixed(1) + " &deg;C";
+  },
+
+  escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+    );
+  },
+
+  formatUptimeFlex(u) {
+    if (u == null) return "N/A";
+    if (typeof u === "string" && isNaN(Number(u.trim()))) return u;
+    const s = Math.max(0, Math.floor(Number(u) || 0));
+    const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
+    if (d > 0) return `${d}d ${h}h ${m}m`;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m`;
+    return s === 0 ? "0s" : `${s}s`;
+  },
+
+  normalizeIspName(raw) {
+    if (!raw) return { isp: "N/A", asn: "" };
+    let s = String(raw).trim();
+    if (s.startsWith("{")) {
+      try { const o = JSON.parse(s); s = o.org || o.provider || o.carrier || o.isp || "N/A"; }
+      catch (_) { s = s.replace(/^[{]+|[}]+$/g, "").trim(); }
+    }
+    s = s.replace(/^"+|"+$/g, "").trim();
+    const m = s.match(/AS\s*?(\d+)/i);
+    let asn = "";
+    if (m) { asn = "AS" + m[1]; s = s.replace(m[0], "").trim(); }
+    if (!s) s = String(raw).replace(/^[{"]+|[}"]+$/g, "").trim() || "N/A";
+    return { isp: s || "N/A", asn };
+  },
+
+  makeAsnLink(raw) {
+    if (!raw) return "";
+    let a = String(raw).trim();
+    if (!a || a.toUpperCase() === "N/A") return "";
+    if (!/^AS/i.test(a)) a = "AS" + a;
+    const num = a.toUpperCase();
+    return `<a class="isp_asn" href="https://ipinfo.io/${encodeURIComponent(num)}" target="_blank" rel="noopener noreferrer">${this.escapeHtml(num)}</a>`;
+  },
+
+  applyNetworkFields(net, initial = false) {
+    if (!net || !this.elements.net_status) return;
+    const el     = this.elements;
+    if (!el.wan_uptime_row) el.wan_uptime_row = document.getElementById("wan_uptime_row");
+    if (!el.wan_down_msg)   el.wan_down_msg   = document.getElementById("wan_down_msg");
+    const status = (typeof net.status === "string") ? net.status.trim().toLowerCase() : "";
+
+    if (status === "online" || status === "up") {
+      const rtt = (net.ping_rtt_ms != null && isFinite(net.ping_rtt_ms))
+        ? `<span style="opacity:0.92;font-weight:400;margin-left:5px;font-size:0.91em;">${Number(net.ping_rtt_ms).toFixed(1)} ms</span>`
+        : "";
+      el.net_status.className = "badge online";
+      el.net_status.innerHTML = `<span class="status-dot dot-online"></span><span>Online${rtt}</span>`;
+    } else if (status === "offline" || status === "down") {
+      el.net_status.className = "badge offline";
+      const secs = Number(net.downtime_seconds || 0);
+      const durStr = secs > 0
+        ? `<span class="badge-downtime-for">for ${this.formatUptimeFlex(secs)}</span>`
+        : "";
+      el.net_status.innerHTML = `<span class="status-dot dot-offline"></span><span class="badge-offline-stack"><span class="badge-offline-label">Offline</span>${durStr}</span>`;
+    } else {
+      el.net_status.className = "badge";
+      el.net_status.innerHTML = "N/A";
+    }
+
+    const dot = el.net_status.querySelector(".status-dot");
+    if (dot && !initial) { dot.classList.remove("pulsing"); void dot.offsetWidth; dot.classList.add("pulsing"); }
+
+    if (el.net_public_ip)
+      el.net_public_ip.textContent = (net.status === "offline") ? "-" : (net.public_ipv4 || "N/A");
+
+    if (el.ipv6_block && el.net_public_ipv6) {
+      const has = net.public_ipv6 && net.public_ipv6 !== "-" && net.public_ipv6 !== "N/A";
+      el.net_public_ipv6.textContent    = has ? net.public_ipv6 : "";
+      el.ipv6_block.style.display       = has ? "block" : "none";
+    }
+
+    const norm     = this.normalizeIspName((net.status === "offline") ? "-" : (net.isp_name || "N/A"));
+    const asnFinal = (norm.asn && norm.asn !== "N/A") ? norm.asn
+      : ((net.isp_asn && String(net.isp_asn).trim()) ? String(net.isp_asn).trim() : "");
+    if (el.net_isp) {
+      const name    = this.escapeHtml(norm.isp || "N/A");
+      const showAsn = net.status !== "offline" && asnFinal;
+      el.net_isp.innerHTML = `<span class="isp_name">${name}</span>` + (showAsn ? this.makeAsnLink(asnFinal) : "");
+    }
+
+    const wanType  = (typeof net.wan_type   === "string") ? net.wan_type.trim().toLowerCase()   : "";
+    const wanStat  = (typeof net.wan_status === "string") ? net.wan_status.trim().toLowerCase() : "";
+    const wanSecs = Number(net.wan_uptime_seconds)   || 0;
+    const wanDown = Number(net.wan_downtime_seconds) || 0;
+
+    const wanUptimeEl  = el.net_wan_uptime  || document.getElementById("net_wan_uptime");
+    const wanLabelEl   = el.net_wan_uptime_label || document.getElementById("net_wan_uptime_label");
+    const wanUpRow     = el.wan_uptime_row  || document.getElementById("wan_uptime_row");
+    const wanDownMsg   = el.wan_down_msg    || document.getElementById("wan_down_msg");
+
+    if (wanUptimeEl) el.net_wan_uptime       = wanUptimeEl;
+    if (wanLabelEl)  el.net_wan_uptime_label = wanLabelEl;
+    if (wanUpRow)    el.wan_uptime_row        = wanUpRow;
+    if (wanDownMsg)  el.wan_down_msg          = wanDownMsg;
+
+    if (wanLabelEl) {
+      if      (wanType === "pppoe")  wanLabelEl.textContent = "PPPoE Uptime";
+      else if (wanType === "dhcp")   wanLabelEl.textContent = "DHCP Uptime";
+      else if (wanType === "static") wanLabelEl.textContent = "WAN Uptime";
+      else if (wanType !== "")       wanLabelEl.textContent = wanType.toUpperCase() + " Uptime";
+    }
+
+    if (wanStat === "down") {
+      if (wanUpRow)   wanUpRow.style.display = "none";
+      if (wanDownMsg) {
+        const downFor   = wanDown > 0 ? " for " + this.formatUptimeFlex(wanDown) : "";
+        let msgText;
+        if (wanType === "dhcp" || wanType === "dhcpv6") {
+          msgText = "WAN is down" + downFor + ". No DHCP lease.";
+        } else if (wanType === "static") {
+          msgText = "WAN is down" + downFor + ".";
+        } else if (wanType !== "" && wanType !== "unknown") {
+          msgText = wanType.toUpperCase() + " is down" + downFor + ".";
+        } else {
+          msgText = "WAN is down" + downFor + ".";
+        }
+        wanDownMsg.innerHTML     = `<i class="fas fa-triangle-exclamation"></i>${this.escapeHtml(msgText)}`;
+        wanDownMsg.style.display = "flex";
+      }
+      if (wanUptimeEl) { wanUptimeEl.textContent = "Down"; wanUptimeEl.classList.add("net-status-offline"); }
+    } else {
+      if (wanUpRow)   wanUpRow.style.display   = "";
+      if (wanDownMsg) wanDownMsg.style.display  = "none";
+      if (wanUptimeEl) {
+        wanUptimeEl.textContent = this.formatUptimeFlex(wanSecs);
+        wanUptimeEl.classList.remove("net-status-offline", "net-status-online");
+        wanUptimeEl.style.color = "";
+      }
+    }
+  },
+
+  async update(initial = false, force = false) {
+    if (document.hidden) return;
+    if (this._updating) return;
+    this._updating = true;
+
+    const now = Date.now();
+    try {
+      const data = await this.fetchData(initial || force);
+      if (data === null) { this._updating = false; return; }
+
+      const bypass = this._bypassMinDelta;
+      if (bypass) this._bypassMinDelta = false;
+      const skipDelta = !bypass && this.prevTime !== null && (now - this.prevTime) < this.config.minDeltaGap;
+
+      const banner = document.getElementById("error_banner");
+      if (banner) banner.style.display = "none";
+
+      if (!this._firstFetchDone) {
+        this._firstFetchDone = true;
+        savePageCache(data);
+      } else {
+        if (Math.random() < 0.07) savePageCache(data);
+      }
+
+      const pending = [];
+      const el = this.elements;
+
+      if (el.system_uptime_control)
+        el.system_uptime_control.textContent =
+          this.formatUptimeFlex(Number(data?.system_uptime_seconds ?? data?.system_uptime ?? 0));
+
+      if (initial || now - (this.lastUpdate.adblock || 0) >= this.config.adblockUpdateInterval) {
+        this.lastUpdate.adblock = now;
+        const iconWrap = document.querySelector(".adb_icon_wrap");
+        const adbNotInstalled = !data?.adblock
+          || data.adblock.installed === false
+          || (data.adblock.installed == null && !data.adblock.status);
+        if (adbNotInstalled) {
+          if (el.adb_status_val)  {
+            el.adb_status_val.style.display = "";
+            el.adb_status_val.textContent   = "Not Installed";
+            el.adb_status_val.style.color   = "rgba(220,80,80,0.65)";
+          }
+          if (el.adb_domains_val) { el.adb_domains_val.textContent = ""; }
+          if (iconWrap) iconWrap.classList.remove("adb_enabled");
+          if (el.adb_widget_link) {
+            el.adb_widget_link.href  = "/cgi-bin/luci/admin/system/package-manager";
+            el.adb_widget_link.title = "Click to Install Adblock Package";
+          }
+        } else {
+          const adb     = data.adblock;
+          const status  = (adb.status || "").toLowerCase();
+          const enabled = (status === "enabled");
+          const stopped = (status === "stopped" || status === "");
+          if (el.adb_status_val) {
+            el.adb_status_val.style.display = "";
+            el.adb_status_val.textContent   = enabled ? "Enabled" : (stopped ? "Stopped" : "Disabled");
+            el.adb_status_val.style.color   = enabled ? "#66bb6a" : (stopped ? "rgba(255,255,255,0.35)" : "#ef5350");
+          }
+          if (iconWrap) iconWrap.classList.toggle("adb_enabled", enabled);
+          if (el.adb_domains_val) {
+            const n = parseInt(String(adb.blocked_domains).replace(/[^0-9]/g, ""), 10) || 0;
+            const label = n >= 1000 ? (n / 1000).toFixed(0) + "K" : String(n);
+            el.adb_domains_val.textContent = enabled ? label + " domains blocked" : "";
+            el.adb_domains_val.style.color = "";
+          }
+          if (el.adb_widget_link) {
+            el.adb_widget_link.href  = "/cgi-bin/luci/admin/services/adblock";
+            el.adb_widget_link.title = "Open Adblock settings";
+          }
+        }
+      }
+
+      if (data?.network) this.applyNetworkFields(data.network, initial);
+
+      if (data?.cpu) {
+        const c     = data.cpu;
+        const total = (c.usr||0)+(c.nice||0)+(c.sys||0)+(c.idle||0)+(c.iowait||0)+(c.irq||0)+(c.softirq||0)+(c.steal||0);
+        const idle  = (c.idle||0)+(c.iowait||0);
+        let cpuPercent = null;
+        if (this.lastCpu && !skipDelta) {
+          const dT = total - this.lastCpu.total, dI = idle - this.lastCpu.idle;
+          if (dT > 0) cpuPercent = ((dT - dI) / dT) * 100;
+        }
+        this.lastCpu = { total, idle };
+
+        if (cpuPercent !== null) {
+          pending.push(() => {
+            if (el.cpuPercentText) el.cpuPercentText.textContent = cpuPercent.toFixed(1) + "%";
+            if (el.cpuBarFill) {
+              el.cpuBarFill.style.width      = Math.min(100, Math.max(0, cpuPercent)) + "%";
+              el.cpuBarFill.style.background = "linear-gradient(to right, rgba(126,87,194,0.75), #7e57c2)";
+            }
+            this.cpuHistory.push(cpuPercent);
+            const avg = this.cpuHistory.reduce((a, b) => a + b, 0) / this.cpuHistory.length;
+            if (el.cpuAvgText) el.cpuAvgText.textContent = avg.toFixed(1) + "%";
+            if (el.cpuMaxText) el.cpuMaxText.textContent = Math.max(...this.cpuHistory).toFixed(1) + "%";
+            if (el.cpuTempBadge && "cpu_temp" in data) {
+              const t = Number(data.cpu_temp) || 0;
+              el.cpuTempBadge.textContent = Math.round(t) + " °C";
+              el.cpuTempBadge.className   = "temp_badge " + (t > 75 ? "temp_badge_hot" : t > 60 ? "temp_badge_warm" : "temp_badge_ok");
+            }
+          });
+
+          pending.push(() => {
+            cpuLineChart.data.labels.push("");
+            cpuLineChart.data.datasets[0].data.push(parseFloat(cpuPercent.toFixed(1)));
+            if (cpuLineChart.data.labels.length > 60) {
+              cpuLineChart.data.labels.shift();
+              cpuLineChart.data.datasets[0].data.shift();
+            }
+            cpuLineChart.update("none");
+          });
+        }
+
+        if (data.cpu_cores && data.cpu_cores.length > 1) {
+          pending.push(() => {
+            const usage = this.computeCoreUsage(data.cpu_cores);
+            if (!usage) return;
+            if (!cpuCoreChart) {
+              const anchor = document.querySelector(".cpu_merged_chart");
+              if (!anchor) return;
+              const isDark  = !document.getElementById("custom_status_container").classList.contains("theme-light");
+              const section = document.createElement("div");
+              section.className = "cpu-core-section";
+              section.id        = "cpu_core_section";
+              section.innerHTML = '<div class="cpu-core-label">Cores</div><div class="cpu-core-canvas-wrap"><canvas id="cpuCoreChart"></canvas></div>';
+              anchor.insertAdjacentElement("afterend", section);
+
+              cpuCoreChart = new Chart(document.getElementById("cpuCoreChart"), {
+                type: "bar",
+                data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderRadius: 3, borderSkipped: false }] },
+                plugins: [coreBarLabelPlugin],
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  animation: {
+                    duration: 500,
+                    easing: "easeOutQuart",
+                    delay: (ctx) => ctx.type === "data" && ctx.mode === "default"
+                      ? ctx.dataIndex * 35
+                      : 0
+                  },
+                  layout: { padding: { top: 20, bottom: 0, left: 2, right: 2 } },
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { title: () => null, label: ctx => "Core " + (ctx.dataIndex + 1) + ": " + Number(ctx.raw).toFixed(1) + "%" } }
+                  },
+                  scales: {
+                    y: { min: 0, max: 100,
+                      ticks: { display: false, color: isDark ? "rgba(255,255,255,0.65)" : "rgba(30,30,40,0.80)" },
+                      grid:  { color: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.08)", drawTicks: false },
+                      border: { display: false }
+                    },
+                    x: { display: false }
+                  }
+                }
+              });
+
+              setTimeout(() => {
+                if (cpuCoreChart) {
+                  cpuCoreChart.options.animation = { duration: 280, easing: "easeOutQuart" };
+                  delete cpuCoreChart.options.animation.delay;
+                }
+              }, 600);
+            }
+            const colors = usage.map(v => v <= 60 ? "rgba(100,180,80,0.85)" : v <= 90 ? "rgba(255,180,40,0.85)" : "rgba(220,60,60,0.85)");
+            if (this.coreHistories.length !== usage.length) this.coreHistories = usage.map(() => []);
+            usage.forEach((v, i) => this.coreHistories[i].push(v));
+            cpuCoreChart._coreAvg = this.coreHistories.map(h => h.reduce((a, b) => a + b, 0) / h.length);
+            cpuCoreChart._coreMax = this.coreHistories.map(h => Math.max(...h));
+            cpuCoreChart.data.labels                      = usage.map((_, i) => "C" + (i + 1));
+            cpuCoreChart.data.datasets[0].data            = usage.map(v => parseFloat(v.toFixed(1)));
+            cpuCoreChart.data.datasets[0].backgroundColor = colors;
+            cpuCoreChart.update();
+          });
+        }
+      }
+
+      if (!skipDelta && this.prevRX !== null && this.prevTX !== null && this.prevTime !== null) {
+        const sec = (now - this.prevTime) / 1000;
+        if (sec > 0) {
+          const rxRate = (data.net.rx - this.prevRX) / sec;
+          const txRate = (data.net.tx - this.prevTX) / sec;
+          this.rxHistory.push(rxRate);
+          this.txHistory.push(txRate);
+          pending.push(() => {
+            if (!netChart) return;
+            netChart.data.labels.push("");
+            netChart.data.datasets[0].data.push(rxRate);
+            netChart.data.datasets[1].data.push(txRate);
+            if (netChart.data.labels.length > 60) {
+              netChart.data.labels.shift();
+              netChart.data.datasets.forEach(d => d.data.shift());
+            }
+            netChart.update("none");
+            this.refreshWanRates();
+          });
+        }
+      }
+      this.prevRX   = data.net.rx;
+      this.prevTX   = data.net.tx;
+      this.prevTime = now;
+
+      if (data?.mem) {
+        const total  = Number(data.mem.total) || 0;
+        const avail  = Number(data.mem.avail) || 0;
+        const memPct = total > 0 ? (total - avail) / total * 100 : 0;
+        if (initial || now - (this.lastUpdate.mem || 0) >= this.config.memInterval) {
+          this.lastUpdate.mem = now;
+          pending.push(() => {
+            if (this.memSparkHistory.length === 0) {
+              for (let i = 0; i < 20; i++) this.memSparkHistory.push(memPct);
+            }
+            this.memSparkHistory.push(memPct);
+            if (this.memSparkHistory.length > 40) this.memSparkHistory.shift();
+
+            const arcColor = memPct < 70 ? "#26c6da" : memPct < 87 ? "#b07d10" : "#b33329";
+            if (el.mem_arc_fill) {
+              el.mem_arc_fill.style.strokeDashoffset = (113 * (1 - memPct / 100)).toFixed(2);
+              el.mem_arc_fill.style.stroke = arcColor;
+            }
+            if (el.mem_arc_pct) el.mem_arc_pct.textContent = memPct.toFixed(1) + "%";
+
+            const fmt = mb => mb > 1024 ? (mb / 1024).toFixed(2) + " GB" : mb.toFixed(1) + " MB";
+            if (el.custom_mem)    el.custom_mem.textContent    = fmt((total - avail) / 1024);
+            if (el.mem_free_text) el.mem_free_text.textContent = fmt(avail / 1024);
+
+            this.drawSparkline();
+          });
+        }
+      }
+
+      if (data?.wifi) {
+        if (initial || now - (this.lastUpdate.wifiCounts || 0) >= this.config.wifiCountsInterval) {
+          this.lastUpdate.wifiCounts = now;
+
+          const sortedAps = (data.wifi.aps || []).slice().sort((a, b) => {
+            const ca = Number(a.count || 0), cb = Number(b.count || 0);
+            if (ca > 0 && cb === 0) return -1;
+            if (ca === 0 && cb > 0) return  1;
+            return 0;
+          });
+
+          const apRows = sortedAps.map(ap => {
+            const count = Number(ap.count || 0);
+            const q     = (ap.quality != null) ? Number(ap.quality) : null;
+            let bandCls = "cl_band cl_band_24g", bandTxt = "2.4 GHz";
+            if      (ap.band === "5_Ghz") { bandCls = "cl_band cl_band_5g"; bandTxt = "5 GHz"; }
+            else if (ap.band === "6_Ghz") { bandCls = "cl_band cl_band_6g"; bandTxt = "6 GHz"; }
+            const sigTitle = (q != null) ? `Signal: ${q}%` : "Signal: N/A";
+            const isLight = document.getElementById("custom_status_container")?.classList.contains("theme-light");
+            const dim = isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.18)";
+            let col, a1col, a2col;
+            if      (q == null || q < 1)  { col = dim;      a1col = dim;      a2col = dim; }
+            else if (q < 40)              { col = "#e53935"; a1col = dim;      a2col = dim; }
+            else if (q < 70)              { col = "#fb8c00"; a1col = "#fb8c00"; a2col = dim; }
+            else                          { col = "#43a047"; a1col = "#43a047"; a2col = "#43a047"; }
+            const sigSvg =
+              `<svg class="cl_signal" viewBox="0 0 16 18" width="14" height="14" title="${sigTitle}">` +
+                `<circle cx="8" cy="11.5" r="1.8" fill="${col}"/>` +
+                `<path d="M5.0 10.1 A3.6 3.6 0 0 1 11.0 10.1" fill="none" stroke="${a1col}" stroke-width="2" stroke-linecap="round"/>` +
+                `<path d="M1.9 8.0 A7.0 7.0 0 0 1 14.1 8.0" fill="none" stroke="${a2col}" stroke-width="2" stroke-linecap="round"/>` +
+              `</svg>`;
+            const row = document.createElement("div");
+            row.className = "cl_ap_row" + (count === 0 ? " wifi_ap_faded" : "");
+            row.innerHTML =
+              `<span class="${bandCls}">${bandTxt}</span>` +
+              `<span class="ap_name">${this.escapeHtml(ap.essid)}</span>` +
+              sigSvg +
+              `<span class="ap_count">${count}</span>`;
+            return row;
+          });
+
+          pending.push(() => {
+            if (el.custom_wifi_total) el.custom_wifi_total.textContent = data.wifi.total || 0;
+            const apDiv = document.getElementById("custom_wifi_ap_list");
+            if (apDiv) {
+              apDiv.textContent = "";
+              if (apRows.length === 0) {
+                apDiv.innerHTML = '<div class="cl_no_lan">No active APs</div>';
+              } else {
+                const frag = document.createDocumentFragment();
+                apRows.forEach(r => frag.appendChild(r));
+                apDiv.appendChild(frag);
+              }
+            }
+          });
+        }
+
+        if (initial || now - (this.lastUpdate.wifiTemp || 0) >= this.config.wifiTempInterval) {
+          this.lastUpdate.wifiTemp = now;
+          const wifiTemp = Number(data.wifi_temp) || 0;
+          pending.push(() => {
+            if (el.custom_wifi_temp) el.custom_wifi_temp.textContent = Math.round(wifiTemp) + " °C";
+            if (el.wifi_temp_dot) {
+              el.wifi_temp_dot.className = "cl_tdot " + (wifiTemp > 75 ? "hot" : wifiTemp > 60 ? "warm" : "ok");
+            }
+            if (el.wifi_temp_foot) el.wifi_temp_foot.style.opacity = "1";
+          });
+        }
+      }
+
+      if (initial || now - (this.lastUpdate.clients || 0) >= this.config.clientsUpdateInterval) {
+        this.lastUpdate.clients = now;
+        if (data?.lan) {
+          const ports = data.lan.ports || [];
+          const total = data.lan.total || 0;
+
+          const lanRows = ports.map(p => {
+            const row = document.createElement("div");
+            row.className = "cl_lan_row" + (p.active ? "" : " wifi_ap_faded");
+
+            // Bridge/AP hint badge — same style as crt hint-badge-bridge
+            const apChip = p.ap_label
+              ? `<span class="cl_hint_badge cl_hint_badge_bridge" title="Multiple devices detected on this port — bridge, AP, or switch">⇄ Bridge / AP</span>`
+              : "";
+
+            // Speed pill
+            let speedHtml = "";
+            if (p.active && p.speed) {
+              const cls = p.speed >= 1000 ? "cl_speed cl_speed_gig" : "cl_speed cl_speed_100";
+              const lbl = p.speed >= 1000 ? p.speed / 1000 + " Gbps" : p.speed + " Mbps";
+              speedHtml = `<span class="${cls}">${lbl}</span>`;
+            } else if (!p.active) {
+              speedHtml = `<span style="font-size:0.75em;opacity:0.4;">inactive</span>`;
+            }
+
+            // Client count badge — indigo circle, only when AP/Bridge detected
+            const countBadge = (p.ap_label && p.mac_count >= 1)
+              ? `<span class="cl_mac_count" title="${p.mac_count} device${p.mac_count !== 1 ? 's' : ''} behind this port">${p.mac_count}</span>`
+              : "";
+
+            row.innerHTML =
+              `<span class="lan_name"><i class="fas fa-ethernet"></i>${this.escapeHtml(p.name)}</span>` +
+              apChip +
+              `<span class="cl_lan_spacer"></span>` +
+              countBadge +
+              speedHtml;
+            return row;
+          });
+
+          const wanOnline = (data?.network?.status === "online");
+          const wanIfName = (data?.net?.iface) || "WAN";
+          const wanDot = document.createElement("span");
+          wanDot.className = "cl_port_dot_wan " + (wanOnline ? "wan_online" : "wan_offline");
+          wanDot.title     = wanIfName + " — " + (wanOnline ? "online" : "offline");
+          wanDot.innerHTML = '<i class="fas fa-globe"></i>';
+
+          const wanSep = document.createElement("span");
+          wanSep.className = "cl_wan_sep";
+
+          const dotEls = ports.map(p => {
+            const dot = document.createElement("span");
+            if (!p.active) {
+              dot.className = "cl_port_dot inactive";
+              dot.title     = p.name + " — inactive";
+            } else if (p.speed && p.speed >= 1000) {
+              dot.className = "cl_port_dot active_gig";
+              dot.title     = p.name + " — " + (p.speed / 1000) + " Gbps";
+            } else {
+              dot.className = "cl_port_dot active_100m";
+              dot.title     = p.name + " — " + (p.speed || "?") + " Mbps";
+            }
+            return dot;
+          });
+
+          pending.push(() => {
+            if (el.custom_lan_total) el.custom_lan_total.textContent = total;
+            const div = el.custom_lan_ports;
+            if (div) {
+              div.textContent = "";
+              if (ports.length === 0) {
+                div.innerHTML = '<div class="cl_no_lan"><i class="fas fa-network-wired" style="margin-right:6px;"></i>No LAN ports</div>';
+              } else {
+                const frag = document.createDocumentFragment();
+                lanRows.forEach(r => frag.appendChild(r));
+                div.appendChild(frag);
+              }
+            }
+            const dotsDiv = el.custom_lan_port_dots;
+            if (dotsDiv) {
+              dotsDiv.textContent = "";
+              const frag = document.createDocumentFragment();
+              frag.appendChild(wanDot);
+              frag.appendChild(wanSep);
+              dotEls.forEach(d => frag.appendChild(d));
+              dotsDiv.appendChild(frag);
+              if (el.custom_lan_port_strip) el.custom_lan_port_strip.style.display = "";
+            }
+          });
+        }
+      }
+
+      if (!document.hidden && (initial || now - (this.lastUpdate.vnstat || 0) >= this.config.vnstatUpdateInterval)) {
+        this.lastUpdate.vnstat = now;
+        if (data?.vnstat) {
+          this.lastVnstatData = data.vnstat;
+
+          const rawIfaces  = Array.isArray(data.vnstat.ifaces) ? data.vnstat.ifaces : [];
+          const ifaceNames = rawIfaces.map(f => (typeof f === "object" ? f.name : f));
+          const newIfaceList = JSON.stringify(ifaceNames);
+
+          if (newIfaceList !== this._lastVnstatIfaceList) {
+            this._lastVnstatIfaceList = newIfaceList;
+            const menu     = document.getElementById("vn_iface_menu");
+            const dropdown = document.getElementById("vn_iface_dropdown");
+            const labelEl  = document.getElementById("vn_iface_label");
+
+            if (!this.vnstatIface || !ifaceNames.includes(this.vnstatIface)) {
+              this.vnstatIface = ifaceNames[0] || null;
+            }
+
+            if (menu && rawIfaces.length > 0) {
+              menu.innerHTML = rawIfaces.map(f => {
+                const nm  = typeof f === "object" ? f.name  : f;
+                const lbl = typeof f === "object" ? f.label : f;
+                const active = nm === this.vnstatIface;
+                return `<div class="wan-unit-option${active ? " active" : ""}" ` +
+                       `data-iface="${this.escapeHtml(nm)}" role="option" ` +
+                       `aria-selected="${active}">${this.escapeHtml(lbl)}</div>`;
+              }).join("");
+              menu.querySelectorAll(".wan-unit-option").forEach(opt => {
+                opt.addEventListener("click", e => {
+                  e.stopPropagation();
+                  window._applyVnstatIface(opt.dataset.iface);
+                });
+              });
+            }
+
+            if (labelEl) {
+              const sel = rawIfaces.find(f => (typeof f === "object" ? f.name : f) === this.vnstatIface);
+              labelEl.textContent = sel ? (typeof sel === "object" ? sel.label : sel) : (this.vnstatIface || "");
+            }
+            if (dropdown) dropdown.style.display = rawIfaces.length > 1 ? "" : "none";
+          }
+
+          pending.push(() => this.renderVnstatData(data.vnstat));
+        }
+      }
+
+      if (pending.length)
+        requestAnimationFrame(() => {
+          pending.forEach(fn => { try { fn(); } catch (e) { console.warn("pending write failed", e); } });
+        });
+
+    } catch (e) {
+      console.error("CustomRealtime update error:", e);
+      const banner = document.getElementById("error_banner");
+      if (banner) { banner.style.display = "block"; banner.textContent = "Realtime data unavailable"; }
+    } finally {
+      this._updating = false;
+    }
+  },
+
+  async start() {
+    this.cacheElements();
+
+    // Fresh cache (written within MAX_CACHE_AGE_MS) → show immediately,
+    // dismiss the overlay now, and let the live fetch update silently.
+    // Outdated / absent cache → keep the overlay until first live fetch
+    // so the user never sees a screen full of stale or N/A values.
+    const cached = loadPageCache();
+    if (cached) {
+      this.applyCachedData(cached);
+      markStale();
+      markFresh();  // cache is recent enough — no need to show the spinner
+    }
+
+    // Fire adblock cache-clear in the background — do NOT await it.
+    // Awaiting it was adding a full round-trip delay before the first
+    // data fetch even started.
+    fetch("/cgi-bin/luci/admin/status/dashboard/adblock_refresh").catch(() => {});
+
+    // First live fetch. If cache was fresh the overlay is already gone.
+    // If cache was absent/outdated the overlay stays until this resolves,
+    // whether it succeeds or fails.
+    try {
+      await this.update(true);
+    } finally {
+      markFresh();  // no-op if already dismissed; cleans up if overlay is still showing
+    }
+    setTimeout(() => { this._bypassMinDelta = true; this.update(false, true); }, 300);
+
+    try {
+      const blob   = new Blob(
+        [`setInterval(()=>postMessage("t"),${this.config.fetchInterval});`],
+        { type: "application/javascript" }
+      );
+      const worker = new Worker(URL.createObjectURL(blob));
+      worker.onmessage = () => { if (!document.hidden) this.update(false); };
+    } catch (_) {
+      setInterval(() => { if (!document.hidden) this.update(false); }, this.config.fetchInterval);
+    }
+
+    let _resumeGuard = false;
+
+    const handleResume = () => {
+      if (_resumeGuard) return;
+      _resumeGuard = true;
+      setTimeout(() => { _resumeGuard = false; }, 600);
+
+      this.prevTime        = null;
+      this.prevRX          = null;
+      this.prevTX          = null;
+      this.lastCpu         = null;
+      this.lastCoreCounters = {};
+
+      requestAnimationFrame(() => {
+        if (!netChart) ensureNetChart();
+      });
+
+      this.update(false);
+    };
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) handleResume();
+    });
+
+    window.addEventListener("pageshow", (e) => {
+      if (e.persisted) handleResume();
+    });
+
+    window.addEventListener("hashchange", () => {
+      setTimeout(handleResume, 100);
+    });
+  }
+};
+
+/* ── Chart theme ── */
+function applyChartTheme(isDark) {
+  const tickColor = isDark ? "rgba(255,255,255,0.65)" : "rgba(30,30,40,0.80)";
+  const gridColor = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.08)";
+  if (typeof cpuLineChart !== "undefined" && cpuLineChart) {
+    cpuLineChart.data.datasets[0].backgroundColor = isDark ? "rgba(126,87,194,0.15)" : "rgba(126,87,194,0.20)";
+    cpuLineChart.options.scales.y.grid.color       = gridColor;
+    cpuLineChart.options.scales.y.ticks.color      = tickColor;
+    cpuLineChart.update("none");
+  }
+  if (typeof cpuCoreChart !== "undefined" && cpuCoreChart) {
+    cpuCoreChart.options.scales.y.grid.color  = gridColor;
+    cpuCoreChart.options.scales.y.ticks.color = tickColor;
+    cpuCoreChart.update("none");
+  }
+  if (typeof netChart !== "undefined" && netChart) {
+    netChart.options.scales.y.ticks.color = tickColor;
+    netChart.options.scales.y.grid.color  = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)";
+    netChart.update("none");
+  }
+}
+
+function toggleTheme(mode) {
+  const container = document.getElementById("custom_status_container");
+  if (!container) return;
+  container.classList.remove("theme-light", "theme-dark");
+  container.classList.add(mode === "light" ? "theme-light" : "theme-dark");
+  applyChartTheme(mode !== "light");
+  try { localStorage.setItem("__custom_theme", mode); } catch (_) {}
+}
+
+(function initTheme() {
+  let mode = "dark";
+  try {
+    mode = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", e => toggleTheme(e.matches ? "dark" : "light"));
+  } catch (_) {}
+  toggleTheme(mode);
+})();
+
+/* ── WAN Chart ── */
+function ensureNetChart() {
+  const canvas = document.getElementById("netChart");
+  if (!canvas) return;
+  if (typeof netChart !== "undefined" && netChart) return;
+
+  const isDark = !document.getElementById("custom_status_container")?.classList.contains("theme-light");
+  netChart = new Chart(canvas, {
+    type: "line",
+    devicePixelRatio: window.devicePixelRatio || 1,
+    data: { labels: [], datasets: [
+      { data: [], borderColor: getComputedStyle(document.documentElement).getPropertyValue("--rx-tint").trim(),
+        backgroundColor: "rgba(78,168,255,0.10)", fill: true, borderWidth: 2, tension: 0.3,
+        pointRadius: 0, pointHoverRadius: 2.5,
+        pointHoverBackgroundColor: getComputedStyle(document.documentElement).getPropertyValue("--rx-tint").trim(),
+        pointHoverBorderColor: "#fff", pointHoverBorderWidth: 1.5 },
+      { data: [], borderColor: getComputedStyle(document.documentElement).getPropertyValue("--tx-tint").trim(),
+        backgroundColor: "rgba(76,208,138,0.10)", fill: true, borderWidth: 2, tension: 0.3,
+        pointRadius: 0, pointHoverRadius: 2,
+        pointHoverBackgroundColor: getComputedStyle(document.documentElement).getPropertyValue("--tx-tint").trim(),
+        pointHoverBorderColor: "#fff", pointHoverBorderWidth: 1.5 }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      interaction: { mode: "nearest", intersect: false },
+      layout: { padding: { top: 4, bottom: 0, left: 2, right: 2 } },
+      scales: {
+        y: { min: 0,
+          ticks: { font: { size: window.innerWidth >= 768 ? 8.5 : 8 }, padding: 0,
+            color: isDark ? "rgba(255,255,255,0.65)" : "rgba(30,30,40,0.80)",
+            callback: v => window.CustomRealtime.formatWanRate(v) },
+          grid: { drawTicks: false, color: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)" },
+          border: { display: false } },
+        x: { display: false }
+      },
+      plugins: { legend: { display: false },
+        tooltip: { enabled: true, callbacks: {
+          label: ctx => (ctx.datasetIndex === 0 ? "⬇ RX: " : "⬆ TX: ") + window.CustomRealtime.formatWanRate(ctx.raw)
+        }}}
+    }
+  });
+
+  const cr = window.CustomRealtime;
+  if (cr && cr.rxHistory && cr.rxHistory.length) {
+    netChart.data.labels = cr.rxHistory.map(() => "");
+    netChart.data.datasets[0].data = [...cr.rxHistory];
+    netChart.data.datasets[1].data = [...cr.txHistory];
+    netChart.update("none");
+  }
+}
+
+var netChart = new Chart(document.getElementById("netChart"), {
+  type: "line",
+  devicePixelRatio: window.devicePixelRatio || 1,
+  data: {
+    labels: [],
+    datasets: [
+      {
+        data: [],
+        borderColor:      getComputedStyle(document.documentElement).getPropertyValue("--rx-tint").trim(),
+        backgroundColor:  "rgba(78,168,255,0.10)",
+        fill: true, borderWidth: 2, tension: 0.3,
+        pointRadius: 0, pointHoverRadius: 2.5,
+        pointHoverBackgroundColor: getComputedStyle(document.documentElement).getPropertyValue("--rx-tint").trim(),
+        pointHoverBorderColor: "#fff", pointHoverBorderWidth: 1.5
+      },
+      {
+        data: [],
+        borderColor:      getComputedStyle(document.documentElement).getPropertyValue("--tx-tint").trim(),
+        backgroundColor:  "rgba(76,208,138,0.10)",
+        fill: true, borderWidth: 2, tension: 0.3,
+        pointRadius: 0, pointHoverRadius: 2,
+        pointHoverBackgroundColor: getComputedStyle(document.documentElement).getPropertyValue("--tx-tint").trim(),
+        pointHoverBorderColor: "#fff", pointHoverBorderWidth: 1.5
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    interaction: { mode: "nearest", intersect: false },
+    layout: { padding: { top: 4, bottom: 0, left: 2, right: 2 } },
+    scales: {
+      y: {
+        min: 0,
+        ticks: { font: { size: window.innerWidth >= 768 ? 8.5 : 8 }, padding: 0, color: "rgba(255,255,255,0.65)", callback: v => window.CustomRealtime.formatWanRate(v) },
+        grid:  { drawTicks: false, color: "rgba(255,255,255,0.05)" },
+        border: { display: false }
+      },
+      x: { display: false }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        enabled: true,
+        callbacks: { label: ctx => (ctx.datasetIndex === 0 ? "⬇ RX: " : "⬆ TX: ") + window.CustomRealtime.formatWanRate(ctx.raw) }
+      }
+    },
+    elements: { point: { radius: 0 } }
+  }
+});
+
+/* ── CPU Line Chart ── */
+var cpuLineChart = new Chart(document.getElementById("cpuLineChart"), {
+  type: "line",
+  devicePixelRatio: window.devicePixelRatio || 1,
+  data: {
+    labels: [],
+    datasets: [{
+      data: [],
+      borderColor: "#7e57c2", borderWidth: 2, tension: 0.35,
+      pointRadius: 0, pointHoverRadius: 2.5,
+      pointHoverBackgroundColor: "#7e57c2", pointHoverBorderColor: "#fff", pointHoverBorderWidth: 1.5,
+      fill: true, backgroundColor: "rgba(126,87,194,0.15)"
+    }]
+  },
+  options: {
+    responsive: false,
+    maintainAspectRatio: false,
+    animation: false,
+    interaction: { mode: "nearest", intersect: false },
+    layout: { padding: { top: 4, bottom: 6, left: 2, right: 2 } },
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: true, callbacks: { label: ctx => "CPU: " + Number(ctx.raw).toFixed(1) + "%" } }
+    },
+    scales: {
+      y: {
+        min: 0, max: 100,
+        ticks: { callback: v => v + "%", font: { size: 8.5 }, maxTicksLimit: 5, padding: 2, color: "rgba(255,255,255,0.65)" },
+        grid:  { color: "rgba(255,255,255,0.05)" },
+        border: { display: false }
+      },
+      x: { display: false }
+    }
+  }
+});
+
+/* ── CPU Core Chart (created lazily by JS when core data arrives) ── */
+var cpuCoreChart = null;
+
+const coreBarLabelPlugin = {
+  id: "coreBarLabel",
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    const dataset  = chart.data.datasets[0];
+    const isDark   = !document.getElementById("custom_status_container").classList.contains("theme-light");
+    const color    = isDark ? "rgba(255,255,255,0.65)" : "rgba(30,30,40,0.80)";
+    const colorSub = isDark ? "rgba(255,255,255,0.45)" : "rgba(30,30,40,0.55)";
+    const dpr      = chart.currentDevicePixelRatio || window.devicePixelRatio || 1;
+    const fMain    = Math.round(8  * dpr) / dpr;
+    const fSub     = Math.round(7.5 * dpr) / dpr;
+    chart.getDatasetMeta(0).data.forEach((bar, i) => {
+      const value = dataset.data[i];
+      if (value == null) return;
+      const avg = chart._coreAvg && chart._coreAvg[i] != null ? chart._coreAvg[i].toFixed(1) + "%" : "--";
+      const max = chart._coreMax && chart._coreMax[i] != null ? chart._coreMax[i].toFixed(1) + "%" : "--";
+      ctx.save();
+      ctx.textAlign    = "center";
+      ctx.textBaseline = "bottom";
+      ctx.fillStyle    = color;
+      ctx.font         = "600 " + fMain + "px sans-serif";
+      ctx.fillText((chart.data.labels[i] || "C" + (i + 1)) + ": " + Number(value).toFixed(1) + "%", bar.x, bar.y - 11);
+      ctx.fillStyle = colorSub;
+      ctx.font      = "600 " + fSub  + "px sans-serif";
+      ctx.fillText("Avg: " + avg + "  Max: " + max, bar.x, bar.y - 2);
+      ctx.restore();
+    });
+  }
+};
+
+/* Re-apply theme now that charts exist */
+(function () {
+  applyChartTheme(!document.getElementById("custom_status_container").classList.contains("theme-light"));
+})();
+
+/* ── WAN unit dropdown ── */
+(function () {
+  const wanDropdown  = document.getElementById("wan_unit_dropdown");
+  const wanTrigger   = document.getElementById("wan_unit_trigger");
+  const wanMenu      = document.getElementById("wan_unit_menu");
+  const wanUnitLabel = document.getElementById("wan_unit_label");
+
+  function closeWanMenu() {
+    if (!wanDropdown) return;
+    wanDropdown.classList.remove("open");
+    if (wanTrigger) wanTrigger.setAttribute("aria-expanded", "false");
+  }
+
+  if (wanTrigger) {
+    wanTrigger.addEventListener("click", e => {
+      e.stopPropagation();
+      const open = wanDropdown.classList.toggle("open");
+      wanTrigger.setAttribute("aria-expanded", String(open));
+    });
+  }
+  document.addEventListener("click", closeWanMenu);
+
+  function applyWanUnit(unit) {
+    const cr = window.CustomRealtime;
+    cr.wanUnit = unit;
+    if (wanUnitLabel) wanUnitLabel.textContent = unit === "MBs" ? "MB/s" : "Mbps";
+    if (wanMenu) {
+      wanMenu.querySelectorAll(".wan-unit-option").forEach(opt => {
+        const sel = opt.dataset.unit === unit;
+        opt.classList.toggle("active", sel);
+        opt.setAttribute("aria-selected", String(sel));
+      });
+    }
+    cr.refreshWanRates();
+    if (typeof netChart !== "undefined") netChart.update("none");
+  }
+
+  if (wanMenu) {
+    wanMenu.querySelectorAll(".wan-unit-option").forEach(opt => {
+      opt.addEventListener("click", e => { e.stopPropagation(); applyWanUnit(opt.dataset.unit); closeWanMenu(); });
+    });
+  }
+})();
+
+/* ── vnStat interface dropdown ── */
+(function () {
+  const dropdown = document.getElementById("vn_iface_dropdown");
+  const trigger  = document.getElementById("vn_iface_trigger");
+
+  function closeMenu() {
+    if (!dropdown) return;
+    dropdown.classList.remove("open");
+    if (trigger) trigger.setAttribute("aria-expanded", "false");
+  }
+
+  if (trigger) {
+    trigger.addEventListener("click", e => {
+      e.stopPropagation();
+      const open = dropdown.classList.toggle("open");
+      trigger.setAttribute("aria-expanded", String(open));
+    });
+  }
+  document.addEventListener("click", closeMenu);
+
+  window._applyVnstatIface = function (iface) {
+    const cr = window.CustomRealtime;
+    if (!cr) return;
+    cr.vnstatIface = iface;
+
+    const labelEl = document.getElementById("vn_iface_label");
+    if (labelEl && cr.lastVnstatData) {
+      const rawIfaces = Array.isArray(cr.lastVnstatData.ifaces) ? cr.lastVnstatData.ifaces : [];
+      const found     = rawIfaces.find(f => (typeof f === "object" ? f.name : f) === iface);
+      labelEl.textContent = found ? (typeof found === "object" ? found.label : found) : iface;
+    } else if (labelEl) {
+      labelEl.textContent = iface;
+    }
+
+    const menu = document.getElementById("vn_iface_menu");
+    if (menu) {
+      menu.querySelectorAll(".wan-unit-option").forEach(opt => {
+        const sel = opt.dataset.iface === iface;
+        opt.classList.toggle("active", sel);
+        opt.setAttribute("aria-selected", String(sel));
+      });
+    }
+    if (cr.lastVnstatData) cr.renderVnstatData(cr.lastVnstatData);
+    closeMenu();
+  };
+})();
+
+(function () {
+  let resizeTimer;
+
+  function resizeAllCharts() {
+    if (typeof netChart !== "undefined" && netChart) {
+      netChart.options.scales.y.ticks.font.size = window.innerWidth >= 768 ? 8.5 : 8;
+      netChart.resize();
+    }
+    if (typeof cpuLineChart !== "undefined" && cpuLineChart) cpuLineChart.resize();
+    if (typeof cpuCoreChart !== "undefined" && cpuCoreChart) cpuCoreChart.resize();
+
+    const cr = window.CustomRealtime;
+    if (cr && cr.memSparkHistory.length > 1) cr.drawSparkline(cr._sparkHoverIdx != null ? cr._sparkHoverIdx : null);
+  }
+
+  function onResize() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(resizeAllCharts, 150);
+  }
+
+  window.addEventListener("resize", onResize);
+  if (screen.orientation) {
+    screen.orientation.addEventListener("change", onResize);
+  } else {
+    window.addEventListener("orientationchange", onResize);
+  }
+
+  (function watchDPR() {
+    const mq = window.matchMedia("(resolution: " + window.devicePixelRatio + "dppx)");
+    mq.addEventListener("change", function handler() {
+      mq.removeEventListener("change", handler);
+      onResize();
+      watchDPR();
+    });
+  })();
+})();
+
+/* ── Seed charts with a flat zero baseline ── */
+(function seedChartsOnLoad() {
+  const SEED_POINTS = 20;
+  const labels = Array(SEED_POINTS).fill("");
+
+  if (typeof netChart !== "undefined" && netChart) {
+    netChart.data.labels             = labels.slice();
+    netChart.data.datasets[0].data   = Array(SEED_POINTS).fill(0);
+    netChart.data.datasets[1].data   = Array(SEED_POINTS).fill(0);
+    netChart.update("none");
+  }
+
+  if (typeof cpuLineChart !== "undefined" && cpuLineChart) {
+    cpuLineChart.data.labels           = labels.slice();
+    cpuLineChart.data.datasets[0].data = Array(SEED_POINTS).fill(0);
+    cpuLineChart.update("none");
+  }
+})();
+
+/* ── Start ── */
+window.addEventListener("DOMContentLoaded", () => window.CustomRealtime.start());
+</script>
+
+<%+footer%>
