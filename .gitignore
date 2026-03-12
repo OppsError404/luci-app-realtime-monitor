@@ -1,0 +1,6 @@
+*.apk
+*.ipk
+tmp/
+build/
+files/usr/lib/lua/luci/controller/
+files/usr/lib/lua/luci/view/
